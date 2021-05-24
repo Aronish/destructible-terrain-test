@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run DEBUG",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "build/Debug/engineering_game.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Run RELEASE",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "build/Release/engineering_game.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}
