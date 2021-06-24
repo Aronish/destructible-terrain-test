@@ -8,7 +8,7 @@
             "program": "build/Debug/engineering_game.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "externalTerminal"
         },
         {
             "name": "Run RELEASE",
@@ -17,7 +17,7 @@
             "program": "build/Release/engineering_game.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal"
+            "console": "externalTerminal"
         }
     ]
 }
