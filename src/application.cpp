@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <functional>
 
 #include <glad/glad.h>
 
@@ -11,11 +12,12 @@
 
 namespace eng
 {
-    Application::Application(int width, int height, char const * title)
-        : m_window(width, height, title, this)
+    Application::Application(unsigned int width, unsigned int height, char const * title)
+        : m_window(width, height, title, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height)
     {
         glfwSwapInterval(1);
-        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.3f, 0.8f, 0.2f, 1.0f);
 
         int indices[] =
         {
@@ -26,39 +28,48 @@ namespace eng
 
         float vertices[] =
         {
-            0.0f, 0.0f,
-            0.5f, 0.0f,
-            0.5f, 0.5f,
-            0.0f, 0.5f
+            0.0f, 0.0f, 0.0f, 0.0f,
+            0.5f, 0.0f, 1.0f, 0.0f,
+            0.5f, 0.5f, 1.0f, 1.0f,
+            0.0f, 0.5f, 0.0f, 1.0f
         };
 
-        m_vbo = std::make_shared<VertexBuffer>(vertices, sizeof(vertices), VertexBufferLayout{{{2, GL_FLOAT}}});
+        m_vbo = std::make_shared<VertexBuffer>(vertices, sizeof(vertices), VertexBufferLayout{{{2, GL_FLOAT}, {2, GL_FLOAT}}});
 
-        m_vao->bind();
-        m_vbo->bind();
         m_vao->setVertexBuffer(m_vbo);
 
         m_shader = std::make_shared<Shader>("res/shaders/shader.glsl");
-    }
 
-    Application::~Application()
-    {
+        m_texture = std::make_shared<Texture>("res/textures/the_one_ring.png");
     }
 
     void Application::onEvent(Event const & event)
     {
+        EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
+        EventDispatcher::dispatch<KeyPressedEvent>(event, [this](KeyPressedEvent const & event)
+        {
+            if (event.m_key_code == GLFW_KEY_E)
+            {
+                m_window.setCursorVisibility(!m_window.isCursorVisible());
+            }
+        });
     }
 
     void Application::update(float delta_time)
     {
         glfwPollEvents();
+        m_camera.update(delta_time, m_window);
     }
 
     void Application::render()
     {
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_shader->bind();
+        m_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
+        m_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
+        m_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
         m_vao->bind();
+        m_texture->bind(0);
         m_vao->drawElements();
         glfwSwapBuffers(m_window.getWindowHandle());
     }
@@ -97,94 +108,5 @@ namespace eng
             render();
             ++frames;
         }
-    }
-    
-    Application::Window::Window(int width, int height, char const * title, Application * application)
-        : m_user_pointer(application)
-    {
-        if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
-#ifdef ENG_DEBUG
-        glfwSetErrorCallback([](int, char const * description)
-        {
-            ENG_LOG(description);
-        });
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-#endif
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        m_window_handle = glfwCreateWindow(width, height, title, nullptr, nullptr);
-        if (!m_window_handle) ENG_LOG("[GLFW]: Window could not be created!");
-        
-        glfwMakeContextCurrent(m_window_handle);
-        gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-        glfwSetWindowUserPointer(m_window_handle, &m_user_pointer);
-
-        // Event Callbacks
-        glfwSetKeyCallback(m_window_handle, [](GLFWwindow * window_handle, int key, int, int action, int)
-        {
-            auto * window_user_pointer = (UserPointer *) glfwGetWindowUserPointer(window_handle);
-            switch (action)
-            {
-                case GLFW_PRESS:
-                {
-                    window_user_pointer->dispatchEvent(KeyPressedEvent(key));
-                    break;
-                }
-                case GLFW_RELEASE:
-                {
-                    window_user_pointer->dispatchEvent(KeyReleasedEvent(key));
-                    break;
-                }
-            }
-        });
-
-        glfwSetMouseButtonCallback(m_window_handle, [](GLFWwindow * window_handle, int button, int action, int)
-        {
-            auto * window_user_pointer = (UserPointer *) glfwGetWindowUserPointer(window_handle);
-            switch (action)
-            {
-                case GLFW_PRESS:
-                {
-                    window_user_pointer->dispatchEvent(MousePressedEvent(button));
-                    break;
-                }
-                case GLFW_RELEASE:
-                {
-                    window_user_pointer->dispatchEvent(MouseReleasedEvent(button));
-                    break;
-                }
-            }
-        });
-
-        glfwSetScrollCallback(m_window_handle, [](GLFWwindow * window_handle, double x_offset, double y_offset)
-        {
-            auto * window_user_pointer = (UserPointer *) glfwGetWindowUserPointer(window_handle);
-            window_user_pointer->dispatchEvent(MouseScrolledEvent(x_offset, y_offset));
-        });
-
-        glfwSetCursorPosCallback(m_window_handle, [](GLFWwindow * window_handle, double x_pos, double y_pos)
-        {
-            auto * window_user_pointer = (UserPointer *) glfwGetWindowUserPointer(window_handle);
-            window_user_pointer->dispatchEvent(MouseMovedEvent(x_pos, y_pos));
-        });
-
-        glfwSetWindowSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
-        {
-            auto * window_user_pointer = (UserPointer *) glfwGetWindowUserPointer(window_handle);
-            window_user_pointer->dispatchEvent(WindowResizedEvent(width, height));
-        });
-    }
-
-    Application::Window::~Window()
-    {
-        glfwDestroyWindow(m_window_handle);
-        glfwTerminate();
-    }
-
-    void Application::Window::setTitle(char const * title)
-    {
-        glfwSetWindowTitle(m_window_handle, title);
     }
 }

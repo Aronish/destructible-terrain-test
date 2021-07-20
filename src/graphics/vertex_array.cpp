@@ -30,7 +30,7 @@ namespace eng
         for (auto const & element : vertex_buffer->getLayout())
         {
             glEnableVertexAttribArray(attrib_index);
-            glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, vertex_buffer->getLayout().getStride(), reinterpret_cast<const void *>(element.m_offset));
+            glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, vertex_buffer->getLayout().getStride(), reinterpret_cast<void const *>(element.m_offset));
             ++attrib_index;
         }
         glBindVertexArray(0);

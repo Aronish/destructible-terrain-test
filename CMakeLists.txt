@@ -12,7 +12,6 @@ endif()
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL Release)
     set(CMAKE_CXX_FLAGS "/EHsc /O2 /W4 /arch:AVX2")
-    #add_compile_definitions(ENG_DEBUG)
     add_compile_definitions(ENG_LOG_ENABLED)
 endif()
 
@@ -20,9 +19,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(
-    engineering_game src/main.cpp include/application.hpp src/application.cpp include/logger.hpp 
+    engineering_game src/main.cpp include/application.hpp src/application.cpp include/logger.hpp include/window.hpp src/window.cpp
     include/event/event.hpp include/event/key_event.hpp include/event/mouse_event.hpp include/event/application_event.hpp
     include/graphics/vertex_buffer.hpp src/graphics/vertex_buffer.cpp include/graphics/vertex_buffer_layout.hpp src/graphics/vertex_buffer_layout.cpp include/graphics/vertex_array.hpp src/graphics/vertex_array.cpp include/graphics/shader.hpp src/graphics/shader.cpp
+    include/graphics/texture.hpp src/graphics/texture.cpp
+    include/first_person_camera.hpp src/first_person_camera.cpp
 )
 
 target_include_directories(engineering_game PRIVATE include/)
@@ -37,6 +38,7 @@ function(copy_resource resource_folder)
 endfunction(copy_resource)
 
 copy_resource("shaders")
+copy_resource("textures")
 
 # Libraries
 # GLFW
@@ -54,3 +56,7 @@ target_link_libraries(engineering_game glad)
 add_subdirectory(lib/glm/)
 target_compile_options(glm INTERFACE /DGLM_FORCE_CXX2A /wd4201 /DGLM_FORCE_INTRINSICS)
 target_link_libraries(engineering_game glm)
+
+# stb_image
+add_subdirectory(lib/stb/stb_image)
+target_link_libraries(engineering_game stb_image)

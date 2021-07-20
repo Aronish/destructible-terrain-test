@@ -51,20 +51,19 @@ namespace eng
 
 #ifdef ENG_DEBUG
             GLint is_compiled;
-            glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
+            glGetShaderiv(shader_handle, GL_COMPILE_STATUS, &is_compiled);
             if (is_compiled == GL_FALSE)
             {
-                ENG_LOG_F("Failed to compile type %d shader!", type);
+                ENG_LOG_F("Failed to compile type %d shader!", map_pair.first);
 
                 constexpr GLsizei MAX_LOG_LENGTH = 512;
                 GLsizei log_length = 0;
                 GLchar info_log[MAX_LOG_LENGTH];
-                glGetShaderInfoLog(shader_id, MAX_LOG_LENGTH, &log_length, &info_log[0]);
+                glGetShaderInfoLog(shader_handle, MAX_LOG_LENGTH, &log_length, &info_log[0]);
 
-                glDeleteShader(shader_id);
+                glDeleteShader(shader_handle);
 
                 ENG_LOG(info_log);
-                return 0;
             }
 #endif
             compiled_shaders.push_back(shader_handle);
@@ -100,8 +99,10 @@ namespace eng
 
             glDeleteProgram(m_id);
 
-            glDeleteShader(vertex_shader);
-            glDeleteShader(fragment_shader);
+            for (auto & shader_handle : compiled_shaders)
+            {
+                glDeleteShader(shader_handle);
+            }
 
             ENG_LOG(info_log);
             return;

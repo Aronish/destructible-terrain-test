@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace eng
 {
     enum class EventType
@@ -22,7 +24,7 @@ namespace eng
     namespace EventDispatcher
     {
         template<typename E>
-        static void dispatch(Event const & event, void(*event_callback)(E const &))
+        static void dispatch(Event const & event, std::function<void(E const &)> event_callback)
         {
             if (event.m_event_type == E::getStaticEventType())
             {
