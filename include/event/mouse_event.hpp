@@ -7,7 +7,7 @@ namespace eng
     class MouseButtonEvent : public Event
     {
     public:
-        MouseButtonEvent(EventType event_type, int button_code) : Event(event_type), m_button_code(button_code) {}
+        MouseButtonEvent(EventType event_type, int button_code, Window & window) : Event(event_type, window), m_button_code(button_code) {}
 
         int const m_button_code;
     };
@@ -15,7 +15,7 @@ namespace eng
     class MousePressedEvent : public MouseButtonEvent
     {
     public:
-        explicit MousePressedEvent(int button_code) : MouseButtonEvent(EventType::MOUSE_PRESSED, button_code) {}
+        explicit MousePressedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_PRESSED, button_code, window) {}
         
         static EventType getStaticEventType()
         {
@@ -26,7 +26,7 @@ namespace eng
     class MouseReleasedEvent : public MouseButtonEvent
     {
     public:
-        explicit MouseReleasedEvent(int button_code) : MouseButtonEvent(EventType::MOUSE_RELEASED, button_code) {}
+        explicit MouseReleasedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_RELEASED, button_code, window) {}
 
         static EventType getStaticEventType()
         {
@@ -37,7 +37,7 @@ namespace eng
     class MouseMovedEvent : public Event
     {
     public:
-        MouseMovedEvent(double x_pos, double y_pos) : Event(EventType::MOUSE_MOVED), m_x_pos(x_pos), m_y_pos(y_pos) {}
+        MouseMovedEvent(double x_pos, double y_pos, Window & window) : Event(EventType::MOUSE_MOVED, window), m_x_pos(x_pos), m_y_pos(y_pos) {}
 
         double const m_x_pos, m_y_pos;
         
@@ -50,7 +50,7 @@ namespace eng
     class MouseScrolledEvent : public Event
     {
     public:
-        MouseScrolledEvent(double x_offset, double y_offset) : Event(EventType::MOUSE_SCROLLED), m_x_offset(x_offset), m_y_offset(y_offset) {}
+        MouseScrolledEvent(double x_offset, double y_offset, Window & window) : Event(EventType::MOUSE_SCROLLED, window), m_x_offset(x_offset), m_y_offset(y_offset) {}
 
         double const m_x_offset, m_y_offset;
     

@@ -16,13 +16,22 @@ namespace eng
         using EventCallback = std::function<void(Event const &)>;
 
         GLFWwindow * m_window_handle;
-        EventCallback m_event_callback;
         bool m_cursor_visible;
+
+        struct UserPointer
+        {
+            EventCallback m_event_callback;
+            Window & m_window;
+
+            UserPointer(EventCallback event_callback, Window & window) : m_event_callback(std::move(event_callback)), m_window(window) {}
+        } m_user_pointer;
 
     public:
         Window(unsigned int width, unsigned int height, char const * title, EventCallback event_callback);
 
         ~Window();
+
+        void setSize(unsigned int width, unsigned int height);
 
         void setTitle(char const * title) const;
 

@@ -7,7 +7,7 @@ namespace eng
     class KeyEvent : public Event
     {
     public:
-        KeyEvent(EventType event_type, int key_code) : Event(event_type), m_key_code(key_code) {}
+        KeyEvent(EventType event_type, int key_code, Window & window) : Event(event_type, window), m_key_code(key_code) {}
 
         int const m_key_code;
     };
@@ -15,7 +15,7 @@ namespace eng
     class KeyPressedEvent : public KeyEvent
     {
     public:
-        explicit KeyPressedEvent(int key_code) : KeyEvent(EventType::KEY_PRESSED, key_code) {}
+        explicit KeyPressedEvent(int key_code, Window & window) : KeyEvent(EventType::KEY_PRESSED, key_code, window) {}
 
         static EventType getStaticEventType()
         {
@@ -26,7 +26,7 @@ namespace eng
     class KeyReleasedEvent : public KeyEvent
     {
     public:
-        explicit KeyReleasedEvent(int key_code) : KeyEvent(EventType::KEY_RELEASED, key_code) {}
+        explicit KeyReleasedEvent(int key_code, Window & window) : KeyEvent(EventType::KEY_RELEASED, key_code, window) {}
         
         static EventType getStaticEventType()
         {

@@ -7,7 +7,7 @@
 namespace eng
 {
     Window::Window(unsigned int width, unsigned int height, char const * title, EventCallback event_callback)
-        : m_event_callback(event_callback)
+        : m_user_pointer(std::move(event_callback), *this)
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
 #ifdef ENG_DEBUG
@@ -26,24 +26,24 @@ namespace eng
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-        glfwSetWindowUserPointer(m_window_handle, &m_event_callback);
+        glfwSetWindowUserPointer(m_window_handle, &m_user_pointer);
 
         setCursorVisibility(true);
 
         // Event Callbacks
         glfwSetKeyCallback(m_window_handle, [](GLFWwindow * window_handle, int key, int, int action, int)
         {
-            auto event_callback = *static_cast<EventCallback*>(glfwGetWindowUserPointer(window_handle));
+            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             switch (action)
             {
                 case GLFW_PRESS:
                 {
-                    event_callback(KeyPressedEvent(key));
+                    user_pointer.m_event_callback(KeyPressedEvent(key, user_pointer.m_window));
                     break;
                 }
                 case GLFW_RELEASE:
                 {
-                    event_callback(KeyReleasedEvent(key));
+                    user_pointer.m_event_callback(KeyReleasedEvent(key, user_pointer.m_window));
                     break;
                 }
             }
@@ -51,17 +51,17 @@ namespace eng
 
         glfwSetMouseButtonCallback(m_window_handle, [](GLFWwindow * window_handle, int button, int action, int)
         {
-            auto event_callback = *static_cast<EventCallback*>(glfwGetWindowUserPointer(window_handle));
+            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             switch (action)
             {
                 case GLFW_PRESS:
                 {
-                    event_callback(MousePressedEvent(button));
+                    user_pointer.m_event_callback(MousePressedEvent(button, user_pointer.m_window));
                     break;
                 }
                 case GLFW_RELEASE:
                 {
-                    event_callback(MouseReleasedEvent(button));
+                    user_pointer.m_event_callback(MouseReleasedEvent(button, user_pointer.m_window));
                     break;
                 }
             }
@@ -69,20 +69,21 @@ namespace eng
 
         glfwSetScrollCallback(m_window_handle, [](GLFWwindow * window_handle, double x_offset, double y_offset)
         {
-            auto event_callback = *static_cast<EventCallback*>(glfwGetWindowUserPointer(window_handle));
-            event_callback(MouseScrolledEvent(x_offset, y_offset));
+            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            user_pointer.m_event_callback(MouseScrolledEvent(x_offset, y_offset, user_pointer.m_window));
         });
 
         glfwSetCursorPosCallback(m_window_handle, [](GLFWwindow * window_handle, double x_pos, double y_pos)
         {
-            auto event_callback = *static_cast<EventCallback*>(glfwGetWindowUserPointer(window_handle));
-            event_callback(MouseMovedEvent(x_pos, y_pos));
+            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            user_pointer.m_event_callback(MouseMovedEvent(x_pos, y_pos, user_pointer.m_window));
         });
 
         glfwSetWindowSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
         {
-            auto event_callback = *static_cast<EventCallback*>(glfwGetWindowUserPointer(window_handle));
-            event_callback(WindowResizedEvent(width, height));
+            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            user_pointer.m_window.setSize(width, height);
+            user_pointer.m_event_callback(WindowResizedEvent(width, height, user_pointer.m_window));
         });
     }
 
@@ -90,6 +91,11 @@ namespace eng
     {
         glfwDestroyWindow(m_window_handle);
         glfwTerminate();
+    }
+
+    void Window::setSize(unsigned int width, unsigned int height)
+    {
+        glViewport(0, 0, width, height);
     }
 
     void Window::setTitle(char const * title) const

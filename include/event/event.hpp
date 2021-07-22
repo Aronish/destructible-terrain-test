@@ -1,7 +1,5 @@
 #pragma once
 
-#include <functional>
-
 namespace eng
 {
     enum class EventType
@@ -13,18 +11,27 @@ namespace eng
         WINDOW_RESIZED
     };
 
+    class Window;
+
     class Event
     {
     public:
-        explicit Event(EventType event_type) : m_event_type(event_type) {}
+        Event(EventType event_type, Window & window) : m_event_type(event_type), m_window(window) {}
 
         EventType const m_event_type;
+        Window & m_window;
+    };
+
+    template<typename E>
+    concept has_static_event_type = requires
+    {
+        E::getStaticEventType();
     };
 
     namespace EventDispatcher
     {
-        template<typename E>
-        static void dispatch(Event const & event, std::function<void(E const &)> event_callback)
+        template<has_static_event_type E>
+        static void dispatch(Event const & event, void(*event_callback)(E const &))
         {
             if (event.m_event_type == E::getStaticEventType())
             {
@@ -32,7 +39,7 @@ namespace eng
             }
         }
 
-        template<typename E, typename T>
+        template<has_static_event_type E, typename T>
         static void dispatch(Event const & event, void(T::*event_callback)(E const &), T * instance)
         {
             if (event.m_event_type == E::getStaticEventType())

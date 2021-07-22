@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "event/mouse_event.hpp"
+#include "event/application_event.hpp"
 #include "window.hpp"
 
 namespace eng
@@ -26,6 +27,8 @@ namespace eng
         void update(float delta_time, Window const & window);
 
         void onMouseMoved(MouseMovedEvent const & event);
+
+        void onWindowResized(WindowResizedEvent const & event);
 
         void addPosition(glm::vec3 const & position);
 

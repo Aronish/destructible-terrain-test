@@ -45,12 +45,13 @@ namespace eng
 
     void Application::onEvent(Event const & event)
     {
-        EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
-        EventDispatcher::dispatch<KeyPressedEvent>(event, [this](KeyPressedEvent const & event)
+        EventDispatcher::dispatch<WindowResizedEvent>(event, &FirstPersonCamera::onWindowResized, &m_camera);
+        if (!event.m_window.isCursorVisible()) EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
+        EventDispatcher::dispatch<KeyPressedEvent>(event, [](KeyPressedEvent const & event)
         {
             if (event.m_key_code == GLFW_KEY_E)
             {
-                m_window.setCursorVisibility(!m_window.isCursorVisible());
+                event.m_window.setCursorVisibility(!event.m_window.isCursorVisible());
             }
         });
     }

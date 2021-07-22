@@ -7,7 +7,7 @@ namespace eng
     class WindowResizedEvent : public Event
     {
     public:
-        WindowResizedEvent(int width, int height) : Event(EventType::WINDOW_RESIZED), m_width(width), m_height(height) {}
+        WindowResizedEvent(int width, int height, Window & window) : Event(EventType::WINDOW_RESIZED, window), m_width(width), m_height(height) {}
 
         int const m_width, m_height;
 

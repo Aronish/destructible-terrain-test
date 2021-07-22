@@ -22,6 +22,7 @@ namespace eng
         std::shared_ptr<Shader> m_shader;
         std::shared_ptr<Texture> m_texture;
         FirstPersonCamera m_camera;
+        Window m_window;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title);
@@ -30,8 +31,5 @@ namespace eng
         void onEvent(Event const & event);
         void update(float delta_time);
         void render();
-
-    private:
-        Window m_window;
     };
 }

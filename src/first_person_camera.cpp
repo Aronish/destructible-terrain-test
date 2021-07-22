@@ -42,7 +42,6 @@ namespace eng
 
     void FirstPersonCamera::onMouseMoved(MouseMovedEvent const & event)
     {
-        //TODO: % 2pi
         m_yaw += ((float)event.m_x_pos - m_last_x) * SENSITIVITY;
         m_pitch += (m_last_y - (float)event.m_y_pos) * SENSITIVITY;
         float almost_half_pi = std::numbers::pi_v<float> / 2.0f - 0.001f;
@@ -50,10 +49,13 @@ namespace eng
         if (m_pitch > almost_half_pi) m_pitch = almost_half_pi;
         m_last_x = (float)event.m_x_pos;
         m_last_y = (float)event.m_y_pos;
-
-        //ENG_LOG_F("Yaw: %f, Pitch: %f", m_yaw, m_pitch);
-
         calculateViewMatrix();
+    }
+
+    void FirstPersonCamera::onWindowResized(WindowResizedEvent const & event)
+    {
+        m_aspect_ratio = (float) event.m_width / (float) event.m_height;
+        calculateProjectionMatrix();
     }
 
     void FirstPersonCamera::addPosition(glm::vec3 const & position)
