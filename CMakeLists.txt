@@ -58,5 +58,9 @@ target_compile_options(glm INTERFACE /DGLM_FORCE_CXX2A /wd4201 /DGLM_FORCE_INTRI
 target_link_libraries(engineering_game glm)
 
 # stb_image
-add_subdirectory(lib/stb/stb_image)
+add_subdirectory(lib/stb/stb_image/)
 target_link_libraries(engineering_game stb_image)
+
+# imgui
+add_subdirectory(lib/imgui/)
+target_link_libraries(engineering_game imgui)

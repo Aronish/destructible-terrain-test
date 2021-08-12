@@ -2,6 +2,9 @@
 #include <functional>
 
 #include <glad/glad.h>
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 
 #include "logger.hpp"
 #include "event/key_event.hpp"
@@ -41,6 +44,13 @@ namespace eng
         m_shader = std::make_shared<Shader>("res/shaders/shader.glsl");
 
         m_texture = std::make_shared<Texture>("res/textures/the_one_ring.png");
+
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO & io = ImGui::GetIO();
+        ImGui::StyleColorsDark();
+        ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
+        ImGui_ImplOpenGL3_Init("#version 460 core");
     }
 
     void Application::onEvent(Event const & event)
@@ -72,6 +82,17 @@ namespace eng
         m_vao->bind();
         m_texture->bind(0);
         m_vao->drawElements();
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        bool show_demo = true;
+        ImGui::ShowDemoWindow(&show_demo);
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwSwapBuffers(m_window.getWindowHandle());
     }
 
