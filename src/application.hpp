@@ -22,6 +22,9 @@ namespace eng
         FirstPersonCamera m_camera;
         World m_world;
 
+        float m_step_size = 0.05f, m_surface_level = 0.0f;
+        int m_grid_size = 2;
+
     public:
         Application(unsigned int width, unsigned int height, char const * title);
 

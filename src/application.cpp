@@ -22,6 +22,8 @@ namespace eng
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.3f, 0.8f, 0.2f, 1.0f);
 
+        m_camera.setPosition(glm::vec3{5.0f});
+
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO & io = ImGui::GetIO();
@@ -56,12 +58,23 @@ namespace eng
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         m_world.render(m_camera);
-        //ImGui_ImplOpenGL3_NewFrame();
-        //ImGui_ImplGlfw_NewFrame();
-        //ImGui::NewFrame();
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-        //ImGui::Render();
-        //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        bool values_changed = false;
+
+        if (ImGui::InputInt("Grid Size", &m_grid_size, 1, 5))
+        {
+            if (m_grid_size < 1.0f) m_grid_size = 1.0f;
+            values_changed = true;
+        }
+        values_changed |= ImGui::DragFloat("Surface Level", &m_surface_level, 0.01f, 0.0f, 1.0f);
+
+        if (values_changed) m_world.generateWorld(m_grid_size, m_step_size, m_surface_level);
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(m_window.getWindowHandle());
     }

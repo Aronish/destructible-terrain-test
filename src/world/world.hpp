@@ -10,14 +10,14 @@ namespace eng
     class World
     {
     private:
-        std::shared_ptr<VertexArray> m_ground;
-        std::shared_ptr<VertexBuffer> m_ground_data;
+        std::shared_ptr<VertexArray> m_vertex_array;
+        std::shared_ptr<VertexBuffer> m_vertex_buffer;
         std::shared_ptr<Shader> m_shader;
 
     public:
         World();
 
-        void generateWorld(unsigned int width, unsigned int height);
+        void generateWorld(float grid_size, float step_size, float surface_level);
 
         void render(FirstPersonCamera const & camera) const;
     };

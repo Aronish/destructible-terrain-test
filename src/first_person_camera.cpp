@@ -58,6 +58,12 @@ namespace eng
         calculateProjectionMatrix();
     }
 
+    void FirstPersonCamera::setPosition(glm::vec3 const & position)
+    {
+        m_position = position;
+        calculateViewMatrix();
+    }
+
     void FirstPersonCamera::addPosition(glm::vec3 const & position)
     {
         m_position += position;

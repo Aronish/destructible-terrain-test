@@ -30,7 +30,14 @@ namespace eng
 
         void onWindowResized(WindowResizedEvent const & event);
 
+        void setPosition(glm::vec3 const & position);
+
         void addPosition(glm::vec3 const & position);
+        
+        glm::vec3 const & getPosition() const
+        {
+            return m_position;
+        }
 
         glm::mat4 const & getViewMatrix() const
         {
