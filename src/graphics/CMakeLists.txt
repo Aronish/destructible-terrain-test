@@ -1,0 +1,13 @@
+target_sources(engineering_game
+    PRIVATE
+        shader.cpp
+        shader.hpp
+        texture.cpp
+        texture.hpp
+        vertex_array.cpp
+        vertex_array.hpp
+        vertex_buffer_layout.cpp
+        vertex_buffer_layout.hpp
+        vertex_buffer.cpp
+        vertex_buffer.hpp
+)

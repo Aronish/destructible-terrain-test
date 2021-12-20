@@ -17,6 +17,7 @@ namespace eng
 
     VertexArray::~VertexArray()
     {
+        ENG_LOG("Destroyed Vertex Buffer");
         glDeleteVertexArrays(1, &m_vertex_array);
         glDeleteBuffers(1, &m_index_buffer);
     }

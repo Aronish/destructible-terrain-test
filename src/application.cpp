@@ -22,29 +22,6 @@ namespace eng
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.3f, 0.8f, 0.2f, 1.0f);
 
-        int indices[] =
-        {
-            0, 1, 2,
-            0, 2, 3
-        };
-        m_vao = std::make_shared<VertexArray>(indices, sizeof(indices));
-
-        float vertices[] =
-        {
-            0.0f, 0.0f, 0.0f, 0.0f,
-            0.5f, 0.0f, 1.0f, 0.0f,
-            0.5f, 0.5f, 1.0f, 1.0f,
-            0.0f, 0.5f, 0.0f, 1.0f
-        };
-
-        m_vbo = std::make_shared<VertexBuffer>(vertices, sizeof(vertices), VertexBufferLayout{{{2, GL_FLOAT}, {2, GL_FLOAT}}});
-
-        m_vao->setVertexBuffer(m_vbo);
-
-        m_shader = std::make_shared<Shader>("res/shaders/shader.glsl");
-
-        m_texture = std::make_shared<Texture>("res/textures/the_one_ring.png");
-
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO & io = ImGui::GetIO();
@@ -56,7 +33,10 @@ namespace eng
     void Application::onEvent(Event const & event)
     {
         EventDispatcher::dispatch<WindowResizedEvent>(event, &FirstPersonCamera::onWindowResized, &m_camera);
-        if (!event.m_window.isCursorVisible()) EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
+        if (!event.m_window.isCursorVisible())
+        {
+            EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
+        }
         EventDispatcher::dispatch<KeyPressedEvent>(event, [](KeyPressedEvent const & event)
         {
             if (event.m_key_code == GLFW_KEY_E)
@@ -75,23 +55,13 @@ namespace eng
     void Application::render()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_shader->bind();
-        m_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(2.0f)));
-        m_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
-        m_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
-        m_vao->bind();
-        m_texture->bind(0);
-        m_vao->drawElements();
+        m_world.render(m_camera);
+        //ImGui_ImplOpenGL3_NewFrame();
+        //ImGui_ImplGlfw_NewFrame();
+        //ImGui::NewFrame();
 
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        bool show_demo = true;
-        ImGui::ShowDemoWindow(&show_demo);
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        //ImGui::Render();
+        //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         glfwSwapBuffers(m_window.getWindowHandle());
     }

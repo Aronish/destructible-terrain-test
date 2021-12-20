@@ -18,15 +18,8 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(
-    engineering_game src/main.cpp include/application.hpp src/application.cpp include/logger.hpp include/window.hpp src/window.cpp
-    include/event/event.hpp include/event/key_event.hpp include/event/mouse_event.hpp include/event/application_event.hpp
-    include/graphics/vertex_buffer.hpp src/graphics/vertex_buffer.cpp include/graphics/vertex_buffer_layout.hpp src/graphics/vertex_buffer_layout.cpp include/graphics/vertex_array.hpp src/graphics/vertex_array.cpp include/graphics/shader.hpp src/graphics/shader.cpp
-    include/graphics/texture.hpp src/graphics/texture.cpp
-    include/first_person_camera.hpp src/first_person_camera.cpp
-)
-
-target_include_directories(engineering_game PRIVATE include/)
+add_executable(engineering_game "")
+add_subdirectory(src)
 
 # Resources
 function(copy_resource resource_folder)
@@ -40,7 +33,7 @@ endfunction(copy_resource)
 copy_resource("shaders")
 copy_resource("textures")
 
-# Libraries
+## Libraries
 # GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)

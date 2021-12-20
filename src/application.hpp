@@ -11,18 +11,16 @@
 #include "graphics/texture.hpp"
 #include "first_person_camera.hpp"
 #include "window.hpp"
+#include "world/world.hpp"
 
 namespace eng
 {
     class Application
     {
     private:
-        std::shared_ptr<VertexArray> m_vao;
-        std::shared_ptr<VertexBuffer> m_vbo;
-        std::shared_ptr<Shader> m_shader;
-        std::shared_ptr<Texture> m_texture;
-        FirstPersonCamera m_camera;
         Window m_window;
+        FirstPersonCamera m_camera;
+        World m_world;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title);
