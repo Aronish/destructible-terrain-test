@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch current configuration",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${config:cmake.buildDirectory}/${command:cmake.buildType}/engineering_game.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${config:cmake.buildDirectory}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "preLaunchTask": "CMake Build",
+            "presentation":
+            {
+                "clear": true
+            }
+        }
+    ]
+}

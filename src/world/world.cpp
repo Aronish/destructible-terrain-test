@@ -1,4 +1,5 @@
 #include <vector>
+#include <chrono>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -385,6 +386,7 @@ namespace eng
 
     void World::generateWorld(float grid_size, float step_size, float surface_level)
     {
+        auto start = std::chrono::high_resolution_clock::now();
         std::vector<float> vertices;
 
         auto function = [](float x, float y, float z) -> float
@@ -475,6 +477,8 @@ namespace eng
         m_vertex_buffer = std::make_shared<VertexBuffer>(&vertices[0], vertices.size() * sizeof(float), VertexBufferLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
         m_vertex_array = std::make_shared<VertexArray>(&indices[0], indices.size() * sizeof(int));
         m_vertex_array->setVertexBuffer(m_vertex_buffer);
+        auto duration = std::chrono::high_resolution_clock::now() - start;
+        ENG_LOG_F("Generation took %f ms", duration.count() / 1000000.0f);
     }
 
     void World::render(FirstPersonCamera const & camera) const
