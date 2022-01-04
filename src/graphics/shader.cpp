@@ -11,6 +11,7 @@ namespace eng
     {
         if (shader_type_token == "vert") return GL_VERTEX_SHADER;
         if (shader_type_token == "frag") return GL_FRAGMENT_SHADER;
+        if (shader_type_token == "comp") return GL_COMPUTE_SHADER;
         ENG_LOG_F("Unknown or unsupported shader type %s", shader_type_token.c_str());
         return 0;
     }
@@ -41,7 +42,7 @@ namespace eng
 
     static std::vector<GLuint> compileCustomShaders(std::unordered_map<GLenum, std::string> const & shader_sources)
     {
-        std::vector<GLuint> compiled_shaders(3);
+        std::vector<GLuint> compiled_shaders;
         for (auto & map_pair : shader_sources)
         {
             GLuint shader_handle = glCreateShader(map_pair.first);
@@ -104,6 +105,7 @@ namespace eng
                 glDeleteShader(shader_handle);
             }
 
+            ENG_LOG_F("Log length: %d", log_length);
             ENG_LOG(info_log);
             return;
         }
@@ -138,6 +140,11 @@ namespace eng
     void Shader::bind() const
     {
         glUseProgram(m_id);
+    }
+
+    void Shader::dispatchCompute(GLint num_groups_x, GLint num_groups_y, GLint num_groups_z) const
+    {
+        glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
     }
 
     void Shader::setUniformMatrix4f(char const * name, glm::mat4 const & data)
@@ -177,5 +184,18 @@ namespace eng
 #endif
         GLuint location = m_uniform_locations[name];
         glUniform1f(location, data);
+    }
+
+    void Shader::setUniformInt(char const * name, int data)
+    {
+#ifdef ENG_DEBUG
+        if (m_uniform_locations.find(name) == m_uniform_locations.end())
+        {
+            ENG_LOG_F("Float uniform with name %s does not exist!", name);
+            return;
+        }
+#endif
+        GLuint location = m_uniform_locations[name];
+        glUniform1i(location, data);
     }
 }

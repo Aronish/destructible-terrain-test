@@ -12,17 +12,18 @@
 #include "first_person_camera.hpp"
 #include "window.hpp"
 #include "world/world.hpp"
+#include "world/cs_world.hpp"
 
 namespace eng
 {
     class Application
     {
     private:
-        Window m_window;
+        Window m_window; // Has to be first due to OpenGL initialization
         FirstPersonCamera m_camera;
-        World m_world;
+        ComputeWorld m_compute_world;
 
-        float m_step_size = 0.05f, m_surface_level = 0.0f;
+        float m_step_size = 0.05f;
         int m_grid_size = 2;
 
     public:

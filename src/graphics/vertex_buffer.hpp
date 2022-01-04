@@ -9,9 +9,9 @@ namespace eng
     class VertexBuffer
     {
     private:
-        GLuint m_vertex_buffer;
         VertexBufferLayout m_layout;
     public:
+        GLuint m_id;
         VertexBuffer(float * vertex_data, size_t data_array_size, VertexBufferLayout && layout);
         ~VertexBuffer();
 

@@ -54,24 +54,27 @@ namespace eng
         m_camera.update(delta_time, m_window);
     }
 
+    int static resolution = 1;
+
     void Application::render()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_world.render(m_camera);
+        m_compute_world.visualize(m_camera);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         bool values_changed = false;
 
-        if (ImGui::InputInt("Grid Size", &m_grid_size, 1, 5))
+        values_changed |= ImGui::DragFloat("Surface Level", &m_compute_world.m_surface_level, 0.01f);
+        if (values_changed |= ImGui::InputInt("Resolution", &resolution, 1, 1))
         {
-            if (m_grid_size < 1.0f) m_grid_size = 1.0f;
-            values_changed = true;
+            if (resolution < 1) resolution = 1;
+            m_compute_world.setResolution(resolution);
         }
-        values_changed |= ImGui::DragFloat("Surface Level", &m_surface_level, 0.01f, 0.0f, 1.0f);
 
-        if (values_changed) m_world.generateWorld(m_grid_size, m_step_size, m_surface_level);
+        if (values_changed) m_compute_world.generateWorld();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

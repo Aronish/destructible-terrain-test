@@ -2,7 +2,7 @@
 
 int main()
 {
-    eng::Application application(1900, 1000, "Title");
+    eng::Application application(1280, 720, "Title");
     application.run();
     return 0;
 }

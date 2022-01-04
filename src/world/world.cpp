@@ -11,7 +11,7 @@ namespace eng
 {
     World::World()
     {
-        m_shader = std::make_shared<Shader>("res/shaders/shader.glsl");
+        m_shader = std::make_shared<Shader>("res/shaders/visualize.glsl");
         generateWorld(1.0f, 0.1f, 0.0f);
     }
 
@@ -420,7 +420,8 @@ namespace eng
                     for (int edge = 0; edge < 12; ++edge)
                     {
                         if (!(edge_configuration & 1 << edge)) continue;
-                        glm::vec3 cornerA = localCornerToRealCoord(i, j, k, cornerIndexAFromEdge[edge], step_size), cornerB = localCornerToRealCoord(i, j, k, cornerIndexBFromEdge[edge], step_size);
+                        glm::vec3 cornerA = localCornerToRealCoord(i, j, k, cornerIndexAFromEdge[edge], step_size),
+                                  cornerB = localCornerToRealCoord(i, j, k, cornerIndexBFromEdge[edge], step_size);
                         vertex_list[edge] = interpolateVertex(
                             glm::vec4(cornerA, function(cornerA.x, cornerA.y, cornerA.z)),
                             glm::vec4(cornerB, function(cornerB.x, cornerB.y, cornerB.z)),
