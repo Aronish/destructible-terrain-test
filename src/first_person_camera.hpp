@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <glm/glm.hpp>
 
 #include "event/mouse_event.hpp"
@@ -15,7 +17,7 @@ namespace eng
         glm::vec3 m_position{}, m_direction{}, m_right{}, m_up{};
         float m_fov{70}, m_aspect_ratio, m_yaw{}, m_pitch{}, m_last_x{}, m_last_y{};
 
-        inline static float const SENSITIVITY = 0.0015f, MOVEMENT_SPEED = 1.5f;
+        inline static float constexpr SENSITIVITY = 0.0015f, MOVEMENT_SPEED = 1.5f;
 
     private:
         void calculateViewMatrix();
@@ -34,6 +36,8 @@ namespace eng
 
         void addPosition(glm::vec3 const & position);
         
+        void setCursorPosition(std::pair<double, double> position);
+
         glm::vec3 const & getPosition() const
         {
             return m_position;

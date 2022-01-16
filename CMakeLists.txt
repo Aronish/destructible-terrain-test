@@ -4,14 +4,14 @@ project(engineering_game)
 
 # Compiler flags and predefined macros
 if ("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "/EHsc /Zi /W4 /arch:AVX2")
+    set(CMAKE_CXX_FLAGS "/EHsc /Zi /W4 /wd4706 /arch:AVX2")
     set(CMAKE_EXE_LINKER_FLAGS "/DEBUG:FULL")
     add_compile_definitions(ENG_DEBUG)
     add_compile_definitions(ENG_LOG_ENABLED)
 endif()
 
 if ("${CMAKE_BUILD_TYPE}" STREQUAL Release)
-    set(CMAKE_CXX_FLAGS "/EHsc /O2 /W4 /arch:AVX2")
+    set(CMAKE_CXX_FLAGS "/EHsc /O2 /W4 /wd4706 /arch:AVX2")
     add_compile_definitions(ENG_LOG_ENABLED)
 endif()
 

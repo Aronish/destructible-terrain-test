@@ -59,18 +59,19 @@ void main()
 {
     if (gl_GlobalInvocationID.x >= u_points_per_axis - 1 || gl_GlobalInvocationID.y >= u_points_per_axis - 1 || gl_GlobalInvocationID.z >= u_points_per_axis - 1) return;
 
-    float step_size = 1.0f / u_points_per_axis;
+    float step_size = 1.0f / float(u_points_per_axis);
+    vec3 scaled_coordinate = vec3(gl_GlobalInvocationID) * step_size;
 
     const vec4 cube_corners[8] =
     {
-        vec4(gl_GlobalInvocationID,                                                     iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(1.0f,    0.0f,       0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(1.0f,    0.0f,       1.0f),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(0.0f,         0.0f,       1.0f),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(0.0f,         1.0f,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(1.0f,    1.0f,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(1.0f,    1.0f,  1.0f),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)]),
-        vec4(vec3(gl_GlobalInvocationID) + vec3(0.0f,         1.0f,  1.0f),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)])
+        vec4(scaled_coordinate,                                             iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
+        vec4(scaled_coordinate + vec3(0.0f,       0.0f,       step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)]),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)])
     };
 
     uint cube_index = 0;

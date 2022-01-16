@@ -20,13 +20,10 @@ namespace eng
     {
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.3f, 0.8f, 0.2f, 1.0f);
-
-        m_camera.setPosition(glm::vec3{5.0f});
+        glClearColor(0.42f, 0.71f, 0.73f, 1.0f);
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO & io = ImGui::GetIO();
         ImGui::StyleColorsDark();
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
@@ -39,11 +36,12 @@ namespace eng
         {
             EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
         }
-        EventDispatcher::dispatch<KeyPressedEvent>(event, [](KeyPressedEvent const & event)
+        EventDispatcher::dispatch<KeyPressedEvent>(event, [&](KeyPressedEvent const & event)
         {
             if (event.m_key_code == GLFW_KEY_E)
             {
-                event.m_window.setCursorVisibility(!event.m_window.isCursorVisible());
+                m_window.setCursorVisibility(!m_window.isCursorVisible());
+                m_camera.setCursorPosition(event.m_window.getCursorPosition());
             }
         });
     }

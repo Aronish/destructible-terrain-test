@@ -77,6 +77,8 @@ namespace eng
         {
             auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             user_pointer.m_event_callback(MouseMovedEvent(x_pos, y_pos, user_pointer.m_window));
+            user_pointer.m_window.m_mouse_x = x_pos;
+            user_pointer.m_window.m_mouse_y = y_pos;
         });
 
         glfwSetWindowSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
@@ -118,6 +120,11 @@ namespace eng
     bool Window::isCursorVisible() const
     {
         return m_cursor_visible;
+    }
+
+    std::pair<double, double> Window::getCursorPosition() const
+    {
+        return { m_mouse_x, m_mouse_y };
     }
 
     GLFWwindow * Window::getWindowHandle() const

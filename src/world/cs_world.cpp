@@ -280,7 +280,7 @@ namespace eng
         m_values = std::make_shared<ShaderStorageBuffer>(sizeof(float) * m_points_per_axis * m_points_per_axis * m_points_per_axis, GL_DYNAMIC_COPY);
 
         m_triangle_counter = std::make_shared<AtomicCounterBuffer>(sizeof(int unsigned));
-        m_triangles = std::make_shared<ShaderStorageBuffer>(m_max_triangle_amount * sizeof(GLSLTriangle), GL_DYNAMIC_READ);
+        m_triangles = std::make_shared<ShaderStorageBuffer>(m_max_triangle_amount * sizeof(GLSLTriangle), GL_DYNAMIC_COPY);
 
         m_triangulation_table = std::make_shared<ShaderStorageBuffer>(sizeof(tri_table), tri_table, 0);
     }
@@ -312,26 +312,25 @@ namespace eng
         m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
         glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
+        auto end = std::chrono::high_resolution_clock::now();
+        ENG_LOG_F("%lld ns", (end - start).count());
+
         int unsigned triangle_count = 0;
         glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(int unsigned), &triangle_count);
-        ENG_LOG_F("triangles generated: %d", triangle_count);
+
+        ENG_LOG_F("Triangle count: %d", triangle_count);
 
         m_mesh_empty = triangle_count == 0;
-        ENG_LOG_F("%s", m_mesh_empty ? "mesh empty" : "mesh not empty");
         if (m_mesh_empty) return;
 
         std::vector<GLSLTriangle> final_mesh(m_max_triangle_amount);
         m_triangles->bindBuffer();
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, m_max_triangle_amount * sizeof(GLSLTriangle), &final_mesh[0]);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, triangle_count * sizeof(GLSLTriangle), &final_mesh[0]);
 
-        std::vector<float> vertex_data(triangle_count * 6 * 3);
-        for (int unsigned i = 0; auto & triangle : final_mesh)
+        std::vector<float> vertex_data(triangle_count * 18);
+        for (int unsigned i = 0; auto & triangle : final_mesh) //TODO: Don't read data back, use ssbo as vertex data buffer directly
         {
-            if (i >= triangle_count)
-            {
-                ENG_LOG_F("triangles processed: %d", i);
-                break;
-            }
+            if (i >= triangle_count * 18) break;
             vertex_data[i++] = triangle.vertexA.x;
             vertex_data[i++] = triangle.vertexA.y;
             vertex_data[i++] = triangle.vertexA.z;
@@ -359,14 +358,10 @@ namespace eng
         {
             indices[i] = i;
         }
-        ENG_LOG_F("indices generated: %d", triangle_count * 3);
 
         m_vertex_buffer = std::make_shared<VertexBuffer>(&vertex_data[0], sizeof(float) * vertex_data.size(), VertexBufferLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
         m_vertex_array = std::make_shared<VertexArray>(&indices[0], sizeof(int) * indices.size());
         m_vertex_array->setVertexBuffer(m_vertex_buffer);
-        
-        auto end = std::chrono::high_resolution_clock::now();
-        ENG_LOG_F("%d ns", (end - start).count());
     }
 
     void ComputeWorld::setResolution(int unsigned resolution)
@@ -374,7 +369,6 @@ namespace eng
         m_resolution = resolution;
         m_points_per_axis = m_resolution * WORK_GROUP_SIZE;
         m_max_triangle_amount = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
-        ENG_LOG_F("Max tris: %d, Resolution: %d, points per axis: %d", m_max_triangle_amount, m_resolution, m_points_per_axis);
         initializeBuffers();
     }
 

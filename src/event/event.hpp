@@ -30,8 +30,8 @@ namespace eng
 
     namespace EventDispatcher
     {
-        template<has_static_event_type E>
-        static void dispatch(Event const & event, void(*event_callback)(E const &))
+        template<has_static_event_type E, typename Callback> requires requires(E const & event, Callback callback) { callback(event); }
+        static void dispatch(Event const & event, Callback event_callback)
         {
             if (event.m_event_type == E::getStaticEventType())
             {

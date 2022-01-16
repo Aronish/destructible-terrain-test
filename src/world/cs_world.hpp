@@ -18,10 +18,13 @@ namespace eng
         int unsigned m_resolution = 1, m_points_per_axis = m_resolution * WORK_GROUP_SIZE, m_max_triangle_amount = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
 
     private:
+#pragma warning(push)
+#pragma warning(disable : 4324)
         struct GLSLTriangle
         {
             alignas(16) glm::vec3 vertexA, vertexB, vertexC, normal;
         };
+#pragma warning(pop)
 
         bool m_mesh_empty = true;
 

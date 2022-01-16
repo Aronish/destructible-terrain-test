@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <utility>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -17,6 +18,7 @@ namespace eng
 
         GLFWwindow * m_window_handle;
         bool m_cursor_visible;
+        double m_mouse_x, m_mouse_y;
 
         struct UserPointer
         {
@@ -38,6 +40,8 @@ namespace eng
         void setCursorVisibility(bool visible);
 
         bool isCursorVisible() const;
+
+        std::pair<double, double> getCursorPosition() const;
 
         GLFWwindow * getWindowHandle() const;
     };

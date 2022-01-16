@@ -2,6 +2,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "logger.hpp"
+
 #include "first_person_camera.hpp"
 
 namespace eng
@@ -68,6 +70,12 @@ namespace eng
     {
         m_position += position;
         calculateViewMatrix();
+    }
+
+    void FirstPersonCamera::setCursorPosition(std::pair<double, double> position)
+    {
+        m_last_x = (float)position.first;
+        m_last_y = (float)position.second;
     }
 
     void FirstPersonCamera::calculateViewMatrix()
