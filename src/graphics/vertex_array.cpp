@@ -19,9 +19,8 @@ namespace eng
         glDeleteBuffers(1, &m_index_buffer);
     }
 
-    void VertexArray::setVertexBuffer(std::shared_ptr<VertexBuffer> const & vertex_buffer)
+    void VertexArray::setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer)
     {
-        m_vertex_buffer = vertex_buffer;
         glBindVertexArray(m_vertex_array);
         vertex_buffer->bind();
         int attrib_index = 0;
@@ -29,6 +28,20 @@ namespace eng
         {
             glEnableVertexAttribArray(attrib_index);
             glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, vertex_buffer->getLayout().getStride(), reinterpret_cast<void const *>(element.m_offset));
+            ++attrib_index;
+        }
+        glBindVertexArray(0);
+    }
+
+    void VertexArray::setVertexData(std::shared_ptr<ShaderStorageBuffer> const & vertex_buffer, VertexDataLayout && layout)
+    {
+        glBindVertexArray(m_vertex_array);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer->getId());
+        int attrib_index = 0;
+        for (auto const & element : layout)
+        {
+            glEnableVertexAttribArray(attrib_index);
+            glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, layout.getStride(), reinterpret_cast<void const *>(element.m_offset));
             ++attrib_index;
         }
         glBindVertexArray(0);

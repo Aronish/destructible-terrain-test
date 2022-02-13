@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <functional>
+#include <cmath>
 
 #include <glad/glad.h>
 #include <imgui.h>
@@ -27,6 +28,9 @@ namespace eng
         ImGui::StyleColorsDark();
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
+
+        m_world.onRendererInit(m_asset_manager);
+        m_world.generateChunks();
     }
 
     void Application::onEvent(Event const & event)
@@ -52,12 +56,13 @@ namespace eng
         m_camera.update(delta_time, m_window);
     }
 
-    int static resolution = 1;
+    int static resolution = 1, octaves = 1;
 
     void Application::render()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_compute_world.visualize(m_camera);
+
+        m_world.render(m_camera);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -65,14 +70,23 @@ namespace eng
 
         bool values_changed = false;
 
-        values_changed |= ImGui::DragFloat("Surface Level", &m_compute_world.m_surface_level, 0.01f);
+        values_changed |= ImGui::DragFloat("Surface Level", &m_world.m_surface_level, 0.05f);
         if (values_changed |= ImGui::InputInt("Resolution", &resolution, 1, 1))
         {
             if (resolution < 1) resolution = 1;
-            m_compute_world.setResolution(resolution);
+            m_world.setResolution(resolution);
         }
+        if (values_changed |= ImGui::InputInt("Octaves", &octaves, 1, 1))
+        {
+            if (octaves < 1) octaves = 1;
+            m_world.m_octaves = octaves;
+        }
+        values_changed |= ImGui::DragFloat("Frequency", &m_world.m_frequency, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Amplitude", &m_world.m_amplitude, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Lacunarity", &m_world.m_lacunarity, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Persistence", &m_world.m_persistence, 0.01f, 0.0f);
 
-        if (values_changed) m_compute_world.generateWorld();
+        if (values_changed) m_world.generateChunks();
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

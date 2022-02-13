@@ -1,5 +1,6 @@
 target_sources(engineering_game
     PRIVATE
+        asset.cpp asset.hpp
         atomic_counter_buffer.cpp atomic_counter_buffer.hpp
         shader_storage_buffer.cpp shader_storage_buffer.hpp
         shader.cpp shader.hpp

@@ -5,14 +5,15 @@
 #include <glm/glm.hpp>
 
 #include "event/event.hpp"
-#include "graphics/vertex_buffer.hpp"
-#include "graphics/vertex_array.hpp"
+#include "first_person_camera.hpp"
+#include "graphics/asset.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/texture.hpp"
-#include "first_person_camera.hpp"
+#include "graphics/vertex_buffer.hpp"
+#include "graphics/vertex_array.hpp"
 #include "window.hpp"
 #include "world/world.hpp"
-#include "world/cs_world.hpp"
+#include "world/chunk.hpp"
 
 namespace eng
 {
@@ -20,8 +21,9 @@ namespace eng
     {
     private:
         Window m_window; // Has to be first due to OpenGL initialization
+        AssetManager m_asset_manager;
         FirstPersonCamera m_camera;
-        ComputeWorld m_compute_world;
+        World m_world;
 
         float m_step_size = 0.05f;
         int m_grid_size = 2;

@@ -9,14 +9,14 @@ namespace eng
     class VertexBuffer
     {
     private:
-        VertexBufferLayout m_layout;
+        VertexDataLayout m_layout;
     public:
         GLuint m_id;
-        VertexBuffer(float * vertex_data, size_t data_array_size, VertexBufferLayout && layout);
+        VertexBuffer(float * vertex_data, size_t data_array_size, VertexDataLayout && layout);
         ~VertexBuffer();
 
         void bind() const;
 
-        VertexBufferLayout const & getLayout() const { return m_layout; }
+        VertexDataLayout const & getLayout() const { return m_layout; }
     };
 }

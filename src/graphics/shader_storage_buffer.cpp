@@ -29,4 +29,9 @@ namespace eng
     {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
+
+    GLuint ShaderStorageBuffer::getId() const
+    {
+        return m_id;
+    }
 }

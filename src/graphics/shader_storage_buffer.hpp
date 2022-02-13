@@ -1,3 +1,5 @@
+#pragma once
+
 #include <type_traits>
 
 #include <glad/glad.h>
@@ -32,5 +34,7 @@ namespace eng
         
         void bindBuffer() const;
         void unbindBuffer() const;
+
+        GLuint getId() const;
     };
 }

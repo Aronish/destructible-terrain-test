@@ -2,7 +2,7 @@
 
 namespace eng
 {
-    VertexBuffer::VertexBuffer(float * vertex_data, size_t data_array_size, VertexBufferLayout && layout) : m_layout(std::move(layout))
+    VertexBuffer::VertexBuffer(float * vertex_data, size_t data_array_size, VertexDataLayout && layout) : m_layout(std::move(layout))
     {
         glCreateBuffers(1, &m_id);
         glBindBuffer(GL_ARRAY_BUFFER, m_id);

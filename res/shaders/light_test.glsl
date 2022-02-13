@@ -21,7 +21,7 @@ void main()
 #shader frag
 #version 460 core
 
-const vec3 light_direction = vec3(1.0f, 1.0f, 1.0f);
+const vec3 light_direction = vec3(0.0f, -1.0f, 0.0f);
 
 in vec3 v_position_W;
 in vec3 v_normal_W;
@@ -38,9 +38,22 @@ void main()
     vec3 half_way_direction = normalize(direction + view_direction);
 
     float diffuse_factor = max(dot(normal, direction), 0.0f);
-    vec3 diffuse = vec3(0.8f, 0.2f, 0.3f) * diffuse_factor;
+    //vec3 diffuse = vec3(0.8f, 0.2f, 0.3f) * diffuse_factor;
 
-    vec3 specular = vec3(1.0f) * pow(max(dot(normal, half_way_direction), 0.0f), 32.0f);
+    float steepness = clamp(dot(normal, vec3(0.0f, 1.0f, 0.0f)), 0.3f, 1.0f);
+    vec3 diffuse = vec3(diffuse_factor);
+    if (v_position_W.y < 0.05f)
+    {
+        diffuse *= vec3(0.64f, 0.77f, 0.52f);
+    } else if (v_position_W.y >= 0.05f && v_position_W.y < 3.0f)
+    {
+        diffuse *= vec3(0.22f, 0.42f, 0.046f) * steepness;
+    } else
+    {
+        diffuse *= vec3(0.76f, 0.9f, 0.89f);
+    }
+
+    vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);
 
     o_color = vec4(diffuse + specular, 1.0f);
 }

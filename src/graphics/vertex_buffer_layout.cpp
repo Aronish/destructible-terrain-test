@@ -15,9 +15,9 @@ namespace eng
         }
     }
 
-    VertexBufferElement::VertexBufferElement(unsigned int size, GLenum type) : m_size(size), m_type_size(GLTypeToSize(type)), m_type(type) {}
+    VertexDataElement::VertexDataElement(unsigned int size, GLenum type) : m_size(size), m_type_size(GLTypeToSize(type)), m_type(type) {}
 
-    VertexBufferLayout::VertexBufferLayout(std::vector<VertexBufferElement> && elements) : m_elements(std::move(elements))
+    VertexDataLayout::VertexDataLayout(std::vector<VertexDataElement> && elements) : m_elements(std::move(elements))
     {
         unsigned int offset = 0;
         for (auto & element : m_elements)

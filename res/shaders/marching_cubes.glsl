@@ -28,6 +28,16 @@ struct Triangle
     vec4 normal;
 };
 
+struct UnpaddedTriangle
+{
+    float  x_1,  y_1,  z_1;
+    float nx_1, ny_1, nz_1;
+    float  x_2,  y_2,  z_2;
+    float nx_2, ny_2, nz_2;
+    float  x_3,  y_3,  z_3;
+    float nx_3, ny_3, nz_3;
+};
+
 layout (std430, binding = 0) readonly buffer IsoSurface
 {
     readonly float iso_surface_values[];
@@ -35,7 +45,7 @@ layout (std430, binding = 0) readonly buffer IsoSurface
 
 layout (std430, binding = 1) buffer Mesh
 {
-    Triangle triangles[];
+    UnpaddedTriangle triangles[];
 };
 
 layout (std430, binding = 2) readonly buffer TriangulationTable
@@ -94,11 +104,31 @@ void main()
         int a2 = cornerIndexAFromEdge[index_configuration[i + 2]];
         int b2 = cornerIndexBFromEdge[index_configuration[i + 2]];
 
-        Triangle tri;
-        tri.vertexA = vec4(interpolateVertices(cube_corners[a0], cube_corners[b0]), 0.0f);
-        tri.vertexB = vec4(interpolateVertices(cube_corners[a1], cube_corners[b1]), 0.0f);
-        tri.vertexC = vec4(interpolateVertices(cube_corners[a2], cube_corners[b2]), 0.0f);
-        tri.normal = vec4(normalize(cross(vec3(tri.vertexB) - vec3(tri.vertexA), vec3(tri.vertexC) - vec3(tri.vertexA))), 0.0);
-        triangles[atomicCounterIncrement(triangle_count)] = tri;
+        UnpaddedTriangle triangle;
+        vec3 vertexA = interpolateVertices(cube_corners[a0], cube_corners[b0]);
+        vec3 vertexB = interpolateVertices(cube_corners[a1], cube_corners[b1]);
+        vec3 vertexC = interpolateVertices(cube_corners[a2], cube_corners[b2]);
+        vec3 normal = normalize(cross(vec3(vertexB) - vec3(vertexA), vec3(vertexC) - vec3(vertexA)));
+        triangle.x_1 = vertexA.x;
+        triangle.y_1 = vertexA.y;
+        triangle.z_1 = vertexA.z;
+        triangle.nx_1 = normal.x;
+        triangle.ny_1 = normal.y;
+        triangle.nz_1 = normal.z;
+        
+        triangle.x_2 = vertexB.x;
+        triangle.y_2 = vertexB.y;
+        triangle.z_2 = vertexB.z;
+        triangle.nx_2 = normal.x;
+        triangle.ny_2 = normal.y;
+        triangle.nz_2 = normal.z;
+
+        triangle.x_3 = vertexC.x;
+        triangle.y_3 = vertexC.y;
+        triangle.z_3 = vertexC.z;
+        triangle.nx_3 = normal.x;
+        triangle.ny_3 = normal.y;
+        triangle.nz_3 = normal.z;
+        triangles[atomicCounterIncrement(triangle_count)] = triangle;
     }
 }
