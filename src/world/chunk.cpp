@@ -16,7 +16,7 @@ namespace eng
     {
         if (m_mesh_empty) return;
         shader->bind();
-        shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(8.0f)) * glm::translate(glm::mat4(1.0f), glm::vec3(m_position.x, 0.0f, m_position.y)));
+        shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(CHUNK_SIZE_IN_UNITS)) * glm::translate(glm::mat4(1.0f), glm::vec3(m_position.x, 0.0f, m_position.y)));
         shader->setUniformMatrix4f("u_view", camera.getViewMatrix());
         shader->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         shader->setUniformVector3f("u_camera_position_W", camera.getPosition());

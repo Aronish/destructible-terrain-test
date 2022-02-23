@@ -8,7 +8,7 @@ namespace eng
 {
     class ShaderStorageBuffer
     {
-    public:
+    private:
         GLuint m_id;
 
     public:

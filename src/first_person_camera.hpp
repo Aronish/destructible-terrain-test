@@ -26,7 +26,7 @@ namespace eng
     public:
         FirstPersonCamera(unsigned int viewport_width, unsigned int viewport_height);
 
-        void update(float delta_time, Window const & window);
+        bool update(float delta_time, Window const & window);
 
         void onMouseMoved(MouseMovedEvent const & event);
 

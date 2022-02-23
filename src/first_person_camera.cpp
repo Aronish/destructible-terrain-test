@@ -14,32 +14,40 @@ namespace eng
         calculateProjectionMatrix();
     }
 
-    void FirstPersonCamera::update(float delta_time, Window const & window)
+    bool FirstPersonCamera::update(float delta_time, Window const & window)
     {
+        bool moved = false;
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_W))
         {
             addPosition(m_direction * delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S))
         {
             addPosition(m_direction * -delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D))
         {
             addPosition(m_right * delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A))
         {
             addPosition(m_right * -delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
         {
             addPosition(m_up * delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_C))
         {
             addPosition(m_up * -delta_time * MOVEMENT_SPEED);
+            moved = true;
         }
+        return moved;
     }
 
     void FirstPersonCamera::onMouseMoved(MouseMovedEvent const & event)

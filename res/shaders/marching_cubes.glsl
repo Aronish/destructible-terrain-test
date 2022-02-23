@@ -69,7 +69,7 @@ void main()
 {
     if (gl_GlobalInvocationID.x >= u_points_per_axis - 1 || gl_GlobalInvocationID.y >= u_points_per_axis - 1 || gl_GlobalInvocationID.z >= u_points_per_axis - 1) return;
 
-    float step_size = 1.0f / float(u_points_per_axis);
+    float step_size = 1.0f / float(u_points_per_axis - 1);
     vec3 scaled_coordinate = vec3(gl_GlobalInvocationID) * step_size;
 
     const vec4 cube_corners[8] =

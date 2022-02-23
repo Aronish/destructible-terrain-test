@@ -53,7 +53,11 @@ namespace eng
     void Application::update(float delta_time)
     {
         glfwPollEvents();
-        m_camera.update(delta_time, m_window);
+        if (m_camera.update(delta_time, m_window))
+        {
+            auto chunk_coords = floor(m_camera.getPosition() / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS));
+            ENG_LOG_F("ChunkX: %f, ChunkZ: %f", chunk_coords.x, chunk_coords.z);
+        }
     }
 
     int static resolution = 1, octaves = 1;

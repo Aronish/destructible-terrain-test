@@ -291,13 +291,14 @@ namespace eng
                 hash <<= 32;
                 hash |= z;
 
-                glm::vec2 const distance_correction = { (float)x / s_points_per_axis, (float)z / s_points_per_axis };
+                // For now, chunks can't share edge values
+                glm::vec2 const noise_offset_correction = { static_cast<float>(x) / s_points_per_axis, static_cast<float>(z) / s_points_per_axis };
 
                 auto mesh = std::make_shared<ShaderStorageBuffer>(s_max_triangle_amount * sizeof(float) * 18, GL_DYNAMIC_COPY);
                 // Generate values for all points
                 s_density_generator->bind();
                 s_density_generator->setUniformInt("u_points_per_axis", s_points_per_axis);
-                s_density_generator->setUniformVector3f("u_position_offset", glm::vec3((float)x - distance_correction.x, 0.0f, (float)z - distance_correction.y));
+                s_density_generator->setUniformVector3f("u_position_offset", glm::vec3(static_cast<float>(x) - noise_offset_correction.x, 0.0f, static_cast<float>(z) - noise_offset_correction.y));
                 s_density_generator->setUniformInt("u_octaves", m_octaves);
                 s_density_generator->setUniformFloat("u_frequency", m_frequency);
                 s_density_generator->setUniformFloat("u_amplitude", m_amplitude);
@@ -336,7 +337,7 @@ namespace eng
                 auto vertex_array = std::make_shared<VertexArray>(&indices[0], sizeof(int) * indices.size());
                 vertex_array->setVertexData(mesh, VertexDataLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
 
-                m_chunk_map.emplace(hash, Chunk(glm::vec2((float)x, (float)z) - distance_correction, std::move(vertex_array), std::move(mesh), mesh_empty));
+                m_chunk_map.emplace(hash, Chunk(glm::vec2(static_cast<float>(x), static_cast<float>(z)), std::move(vertex_array), std::move(mesh), mesh_empty));
             }
         }
         auto end = std::chrono::high_resolution_clock::now();
@@ -357,5 +358,10 @@ namespace eng
         {
             iterator.second.render(s_chunk_renderer, camera);
         }
+    }
+
+    int unsigned World::getPointsPerAxis()
+    {
+        return s_points_per_axis;
     }
 }

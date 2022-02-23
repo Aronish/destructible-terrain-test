@@ -40,20 +40,20 @@ void main()
     float diffuse_factor = max(dot(normal, direction), 0.0f);
     //vec3 diffuse = vec3(0.8f, 0.2f, 0.3f) * diffuse_factor;
 
-    float steepness = clamp(dot(normal, vec3(0.0f, 1.0f, 0.0f)), 0.3f, 1.0f);
+    float steepness = 1.0f - dot(normal, vec3(0.0f, 1.0f, 0.0f));
     vec3 diffuse = vec3(diffuse_factor);
     if (v_position_W.y < 0.05f)
     {
         diffuse *= vec3(0.64f, 0.77f, 0.52f);
     } else if (v_position_W.y >= 0.05f && v_position_W.y < 3.0f)
     {
-        diffuse *= vec3(0.22f, 0.42f, 0.046f) * steepness;
+        diffuse *= vec3(0.22f, 0.42f, 0.046f);// * steepness;
     } else
     {
         diffuse *= vec3(0.76f, 0.9f, 0.89f);
     }
 
     vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);
-
-    o_color = vec4(diffuse + specular, 1.0f);
+    vec3 ambient = vec3(0.1f * steepness);
+    o_color = vec4(ambient + diffuse + specular, 1.0f);
 }

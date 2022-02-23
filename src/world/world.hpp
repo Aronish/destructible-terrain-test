@@ -44,5 +44,7 @@ namespace eng
         void generateChunks();
 
         void render(FirstPersonCamera const & camera) const;
+
+        int unsigned static getPointsPerAxis();
     };
 }
