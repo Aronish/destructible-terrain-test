@@ -2,7 +2,7 @@
 
 namespace eng
 {
-    VertexArray::VertexArray(int * indices, size_t index_array_size) : m_index_count((GLsizei)index_array_size / sizeof(int))
+    VertexArray::VertexArray(int * indices, size_t index_array_size) : m_index_count(static_cast<GLsizei>(index_array_size) / sizeof(int))
     {
         glCreateVertexArrays(1, &m_vertex_array);
         glCreateBuffers(1, &m_index_buffer);
@@ -10,6 +10,15 @@ namespace eng
         glBindVertexArray(m_vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)index_array_size, indices, GL_STATIC_DRAW);
+        glBindVertexArray(0);
+    }
+
+    VertexArray::VertexArray(GLuint shared_index_buffer, int unsigned index_count) : m_index_count(index_count)
+    {
+        m_index_buffer = shared_index_buffer;
+        glCreateVertexArrays(1, &m_vertex_array);
+        glBindVertexArray(m_vertex_array);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shared_index_buffer);
         glBindVertexArray(0);
     }
 

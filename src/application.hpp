@@ -25,8 +25,8 @@ namespace eng
         FirstPersonCamera m_camera;
         World m_world;
 
-        float m_step_size = 0.05f;
-        int m_grid_size = 2;
+        glm::vec2 m_last_chunk_coords;
+        int m_render_distance = 3;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title);

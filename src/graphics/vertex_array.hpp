@@ -16,6 +16,7 @@ namespace eng
         GLsizei m_index_count;
     public:
         VertexArray(int * indices, size_t index_array_size);
+        VertexArray(GLuint shared_index_buffer, int unsigned index_count);
         ~VertexArray();
 
         void bind() const;

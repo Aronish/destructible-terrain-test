@@ -10,6 +10,14 @@ namespace eng
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
+    ShaderStorageBuffer::ShaderStorageBuffer(size_t size, std::nullptr_t, GLenum usage)
+    {
+        glCreateBuffers(1, &m_id);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_id);
+        glBufferStorage(GL_SHADER_STORAGE_BUFFER, size, nullptr, usage);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
+
     ShaderStorageBuffer::~ShaderStorageBuffer()
     {
         glDeleteBuffers(1, &m_id);

@@ -7,9 +7,18 @@
 
 namespace eng
 {
-    Chunk::Chunk(glm::vec2 position, std::shared_ptr<VertexArray> && vertex_array, std::shared_ptr<ShaderStorageBuffer> && mesh, bool mesh_empty)
-        : m_position(position), m_vertex_array(std::move(vertex_array)), m_mesh(std::move(mesh)), m_mesh_empty(mesh_empty)
+    Chunk::Chunk(GLuint max_index_buffer, int unsigned max_index_count)
     {
+        m_mesh = std::make_shared<ShaderStorageBuffer>(World::s_max_triangle_amount * sizeof(float) * 18, GL_DYNAMIC_COPY);
+        m_vertex_array = std::make_shared<VertexArray>(max_index_buffer, max_index_count);
+        m_vertex_array->setVertexData(m_mesh, VertexDataLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
+        m_next_unused = nullptr;
+    }
+
+    void Chunk::activate(glm::ivec2 position)
+    {
+        m_position = position;
+        m_active = true;
     }
 
     void Chunk::render(std::shared_ptr<Shader> const & shader, FirstPersonCamera const & camera) const
@@ -22,5 +31,86 @@ namespace eng
         shader->setUniformVector3f("u_camera_position_W", camera.getPosition());
         m_vertex_array->bind();
         m_vertex_array->drawElements();
+    }
+
+    void Chunk::setNextUnused(Chunk * chunk)
+    {
+        m_next_unused = chunk;
+        m_active = false;
+    }
+
+    Chunk * Chunk::getNextUnused() const
+    {
+        return m_next_unused;
+    }
+
+    void Chunk::setMeshEmpty(bool mesh_empty)
+    {
+        m_mesh_empty = mesh_empty;
+    }
+
+    void Chunk::setActive(bool active)
+    {
+        m_active = active;
+    }
+
+    bool Chunk::isActive() const
+    {
+        return m_active;
+    }
+
+    std::shared_ptr<ShaderStorageBuffer> Chunk::getMesh() const
+    {
+        return m_mesh;
+    }
+
+    glm::ivec2 const & Chunk::getPosition() const
+    {
+        return m_position;
+    }
+    
+    //ChunkPool
+
+    void ChunkPool::initialize(int unsigned initial_size, GLuint max_index_buffer, int unsigned max_index_count)
+    {
+        m_max_index_buffer = max_index_buffer;
+        m_max_index_count = max_index_count;
+        setPoolSize(initial_size);
+        m_first_unused = &m_chunks[0];
+        for (int i = 0; i < m_chunks.size() - 1; ++i)
+        {
+            m_chunks[i].setNextUnused(&m_chunks[i + 1]);
+        }
+        m_chunks[m_chunks.size() - 1].setNextUnused(nullptr);
+    }
+
+    void ChunkPool::setPoolSize(int unsigned size)
+    {
+        m_chunks.clear();
+        m_chunks.reserve(size);
+        for (int unsigned i = 0; i < size; ++i)
+        {
+            m_chunks.emplace_back(m_max_index_buffer, m_max_index_count);
+        }
+    }
+
+    bool ChunkPool::activateChunk(Chunk ** out_chunk, glm::ivec2 position)
+    {
+        if (m_first_unused == nullptr) return false;
+        *out_chunk = m_first_unused;
+        m_first_unused = (*out_chunk)->getNextUnused();
+        (*out_chunk)->activate(position);
+        return true;
+    }
+
+    void ChunkPool::deactivateChunk(Chunk * chunk)
+    {
+        chunk->setNextUnused(m_first_unused);
+        m_first_unused = chunk;
+    }
+
+    std::vector<Chunk> const & ChunkPool::getChunkList() const
+    {
+        return m_chunks;
     }
 }

@@ -22,6 +22,8 @@ namespace eng
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.42f, 0.71f, 0.73f, 1.0f);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -30,7 +32,7 @@ namespace eng
         ImGui_ImplOpenGL3_Init("#version 460 core");
 
         m_world.onRendererInit(m_asset_manager);
-        m_world.generateChunks();
+        m_world.generateChunks({ 0.0f, 0.0f });
     }
 
     void Application::onEvent(Event const & event)
@@ -55,8 +57,12 @@ namespace eng
         glfwPollEvents();
         if (m_camera.update(delta_time, m_window))
         {
-            auto chunk_coords = floor(m_camera.getPosition() / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS));
-            ENG_LOG_F("ChunkX: %f, ChunkZ: %f", chunk_coords.x, chunk_coords.z);
+            auto chunk_coords = floor(glm::vec2(m_camera.getPosition().x, m_camera.getPosition().z) / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS));
+            if (m_last_chunk_coords != chunk_coords)
+            {
+                m_last_chunk_coords = chunk_coords;
+                m_world.generateChunks(m_last_chunk_coords);
+            }
         }
     }
 
@@ -90,7 +96,7 @@ namespace eng
         values_changed |= ImGui::DragFloat("Lacunarity", &m_world.m_lacunarity, 0.01f, 0.0f);
         values_changed |= ImGui::DragFloat("Persistence", &m_world.m_persistence, 0.01f, 0.0f);
 
-        if (values_changed) m_world.generateChunks();
+        if (values_changed) m_world.generateChunks(m_last_chunk_coords);
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
