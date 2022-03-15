@@ -20,6 +20,7 @@ namespace eng
     private:
         std::shared_ptr<VertexArray> m_vertex_array;
         std::shared_ptr<ShaderStorageBuffer> m_mesh;
+        std::shared_ptr<ShaderStorageBuffer> m_indirect_draw_buffer;
         bool m_mesh_empty = false, m_active = false;
         union
         {
@@ -31,6 +32,8 @@ namespace eng
         Chunk(GLuint max_index_buffer, int unsigned max_index_count);
 
         void activate(glm::ivec2 position);
+
+        void render() const;
 
         void setNextUnused(Chunk * chunk);
         Chunk * getNextUnused() const;
@@ -44,6 +47,7 @@ namespace eng
 
         std::shared_ptr<VertexArray> getVertexArray() const;
         std::shared_ptr<ShaderStorageBuffer> getMesh() const;
+        std::shared_ptr<ShaderStorageBuffer> getIndirectDrawBuffer() const;
 
         glm::ivec2 const & getPosition() const;
     };
@@ -53,7 +57,7 @@ namespace eng
     private:
         std::vector<Chunk> m_chunks;
         Chunk * m_first_unused;
-        GLuint m_max_index_buffer;
+        GLuint m_max_index_buffer; //Owned by World
         int unsigned m_max_index_count;
     public:
         void initialize(int unsigned initial_size, GLuint max_index_buffer, int unsigned max_index_count);

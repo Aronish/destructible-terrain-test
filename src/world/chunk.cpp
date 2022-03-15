@@ -12,6 +12,10 @@ namespace eng
         m_mesh = std::make_shared<ShaderStorageBuffer>(World::s_max_triangle_amount * sizeof(float) * 18, GL_DYNAMIC_COPY);
         m_vertex_array = std::make_shared<VertexArray>(max_index_buffer, max_index_count);
         m_vertex_array->setVertexData(m_mesh, VertexDataLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
+
+        int unsigned constexpr initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
+        m_indirect_draw_buffer = std::make_shared<ShaderStorageBuffer>(sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT);
+
         m_next_unused = nullptr;
     }
 
@@ -19,6 +23,12 @@ namespace eng
     {
         m_position = position;
         m_active = true;
+    }
+
+    void Chunk::render() const
+    {
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_indirect_draw_buffer->getId());
+        glDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr);
     }
 
     void Chunk::setNextUnused(Chunk * chunk)
@@ -62,6 +72,11 @@ namespace eng
     std::shared_ptr<ShaderStorageBuffer> Chunk::getMesh() const
     {
         return m_mesh;
+    }
+
+    std::shared_ptr<ShaderStorageBuffer> Chunk::getIndirectDrawBuffer() const
+    {
+        return m_indirect_draw_buffer;
     }
 
     glm::ivec2 const & Chunk::getPosition() const

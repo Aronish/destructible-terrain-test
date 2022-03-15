@@ -266,16 +266,12 @@ namespace eng
 
     World::~World()
     {
-        m_triangle_counter->bindBuffer();
-        glUnmapBuffer(GL_ATOMIC_COUNTER_BUFFER);
+        glDeleteBuffers(1, &m_max_chunk_index_buffer);
     }
 
     void World::onRendererInit(AssetManager const & asset_manager)
     {
         m_triangulation_table = std::make_shared<ShaderStorageBuffer>(sizeof(tri_table), tri_table, 0);
-        m_triangle_counter = std::make_shared<AtomicCounterBuffer>(sizeof(int unsigned));
-        m_triangle_counter->bindBuffer();
-        m_counter_buffer = reinterpret_cast<int unsigned *>(glMapBuffer(GL_ATOMIC_COUNTER_BUFFER, GL_READ_ONLY));
         m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
         m_marching_cubes = asset_manager.getShader("res/shaders/marching_cubes.glsl");
         m_chunk_renderer = asset_manager.getShader("res/shaders/light_test.glsl");
@@ -305,9 +301,16 @@ namespace eng
         m_render_distance = render_distance;
     }
 
+    void World::invalidateAllChunks()
+    {
+        for (auto & chunk : m_chunk_pool)
+        {
+            m_chunk_pool.deactivateChunk(&chunk);
+        }
+    }
+
     void World::generateChunks(glm::ivec2 const & origin)
     {
-        auto start_world = std::chrono::high_resolution_clock::now();
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive()) continue;
@@ -322,7 +325,6 @@ namespace eng
             {
                 if (std::find_if(m_chunk_pool.begin(), m_chunk_pool.end(), [&](Chunk chunk) { return chunk.isActive() && (chunk.getPosition() == glm::ivec2(x, z)); }) == m_chunk_pool.end())
                 {
-                    auto start_chunk = std::chrono::high_resolution_clock::now();
                     Chunk * chunk = nullptr;
                     if (!m_chunk_pool.activateChunk(&chunk, glm::ivec2{ x, z })) continue;
                     // For now, chunks can't share edge valuese
@@ -342,34 +344,21 @@ namespace eng
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                     // Run marching cubes
+                    int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
+                    chunk->getIndirectDrawBuffer()->bindBuffer();
+                    chunk->getIndirectDrawBuffer()->setSubDataUnsafe(initial_indirect_config, sizeof(initial_indirect_config), 0);
+                    chunk->getIndirectDrawBuffer()->unbindBuffer();
                     m_marching_cubes->bind();
                     m_marching_cubes->setUniformFloat("u_surface_level", m_surface_level);
                     m_marching_cubes->setUniformInt("u_points_per_axis", s_points_per_axis);
-                    //m_isosurface->bind(0);
                     chunk->getMesh()->bind(1);
                     m_triangulation_table->bind(2);
-                    m_triangle_counter->bind(3);
+                    chunk->getIndirectDrawBuffer()->bind(3);
                     m_marching_cubes->dispatchCompute(s_resolution, s_resolution, s_resolution);
-                    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT);
-
-                    auto start = std::chrono::high_resolution_clock::now();
-
-                    GLsync sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-                    glClientWaitSync(sync, 0, GL_TIMEOUT_IGNORED);
-                    glDeleteSync(sync);
-
-                    chunk->setIndexCount(*m_counter_buffer * 3);
-                    *m_counter_buffer = 0;
-
-                    auto end = std::chrono::high_resolution_clock::now();
-                    auto end_chunk = std::chrono::high_resolution_clock::now();
-                    auto chunk_duration = end_chunk - start_chunk;
-                    ENG_LOG_F("%lld ns, %f%% of total chunk time: %lld ns", (end - start).count(), 100.0f * static_cast<float>((end - start).count()) / chunk_duration.count(), chunk_duration.count());
+                    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
             }
         }
-        auto end_world = std::chrono::high_resolution_clock::now();
-        ENG_LOG_F("World generation time: %lld ns", (end_world - start_world).count());
     }
 
     void World::setResolution(int unsigned resolution)
@@ -391,7 +380,7 @@ namespace eng
             if (!chunk.isActive() || chunk.meshEmpty()) continue;
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(Chunk::CHUNK_SIZE_IN_UNITS)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
             chunk.getVertexArray()->bind();
-            chunk.getVertexArray()->drawElements();
+            chunk.render();
         }
     }
 

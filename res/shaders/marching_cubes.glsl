@@ -45,7 +45,10 @@ layout (std430, binding = 2) readonly buffer TriangulationTable
     readonly int tri_table[256][16];
 };
 
-layout (binding = 3) uniform atomic_uint triangle_count;
+layout (binding = 3) buffer IndirectDrawConfig
+{
+    uint index_count, prim_count, first_index, base_vertex, base_instance, triangle_count;
+};
 
 uniform float u_surface_level = 0.0f;
 
@@ -121,6 +124,7 @@ void main()
         triangle.nx_3 = normal.x;
         triangle.ny_3 = normal.y;
         triangle.nz_3 = normal.z;
-        triangles[atomicCounterIncrement(triangle_count)] = triangle;
+        triangles[atomicAdd(triangle_count, 1)] = triangle;
+        atomicAdd(index_count, 3);
     }
 }

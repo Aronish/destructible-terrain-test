@@ -96,7 +96,11 @@ namespace eng
         values_changed |= ImGui::DragFloat("Lacunarity", &m_world.m_lacunarity, 0.01f, 0.0f);
         values_changed |= ImGui::DragFloat("Persistence", &m_world.m_persistence, 0.01f, 0.0f);
 
-        if (values_changed) m_world.generateChunks(m_last_chunk_coords);
+        if (values_changed)
+        {
+            m_world.invalidateAllChunks();
+            m_world.generateChunks(m_last_chunk_coords);
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
