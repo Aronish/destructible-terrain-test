@@ -20,7 +20,7 @@ namespace eng
     private:
         std::shared_ptr<VertexArray> m_vertex_array;
         std::shared_ptr<ShaderStorageBuffer> m_mesh;
-        bool m_mesh_empty = true, m_active = false;
+        bool m_mesh_empty = false, m_active = false;
         union
         {
             glm::ivec2 m_position;
@@ -32,16 +32,17 @@ namespace eng
 
         void activate(glm::ivec2 position);
 
-        void render(std::shared_ptr<Shader> const & shader, FirstPersonCamera const & camera) const;
-
         void setNextUnused(Chunk * chunk);
         Chunk * getNextUnused() const;
 
-        void setMeshEmpty(bool mesh_empty);
+        bool meshEmpty() const;
+
+        void setIndexCount(int unsigned count);
 
         void setActive(bool active);
         bool isActive() const;
 
+        std::shared_ptr<VertexArray> getVertexArray() const;
         std::shared_ptr<ShaderStorageBuffer> getMesh() const;
 
         glm::ivec2 const & getPosition() const;
@@ -59,8 +60,6 @@ namespace eng
         void setPoolSize(int unsigned size);
         bool activateChunk(Chunk ** out_chunk, glm::ivec2 position);
         void deactivateChunk(Chunk * chunk);
-
-        std::vector<Chunk> const & getChunkList() const;
 
         std::vector<Chunk>::iterator begin() { return m_chunks.begin(); }
         std::vector<Chunk>::iterator end() { return m_chunks.end(); }

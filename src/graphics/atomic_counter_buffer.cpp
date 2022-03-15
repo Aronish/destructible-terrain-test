@@ -8,7 +8,7 @@ namespace eng
     {
         glCreateBuffers(1, &m_id);
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, m_id);
-        glBufferData(GL_ATOMIC_COUNTER_BUFFER, size, nullptr, GL_DYNAMIC_READ);
+        glBufferStorage(GL_ATOMIC_COUNTER_BUFFER, size, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
         glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
     }
 

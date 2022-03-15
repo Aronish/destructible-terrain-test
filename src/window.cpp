@@ -15,7 +15,7 @@ namespace eng
         {
             ENG_LOG(description);
         });
-        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+        glfwWindowHint(GLFW_CONTEXT_DEBUG, GLFW_TRUE);
 #endif
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -25,6 +25,17 @@ namespace eng
         
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+#define ENG_DEBUG_LOG 0
+#if defined(ENG_DEBUG) && ENG_DEBUG_LOG
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(
+        [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const * message, void const *)
+        {
+            if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
+            ENG_LOG_F("Source: %x, Type: %x, Id: %d, Severity: %x, Length: %d\nMessage: %s\n", source, type, id, severity, length, message);
+        }, nullptr);
+#endif
 
         glfwSetWindowUserPointer(m_window_handle, &m_user_pointer);
 

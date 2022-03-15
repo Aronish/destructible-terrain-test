@@ -20,14 +20,6 @@ uint indexFromCoord(uint x, uint y, uint z)
     return z * u_points_per_axis * u_points_per_axis + y * u_points_per_axis + x;
 }
 
-struct Triangle
-{
-    vec4 vertexA;
-    vec4 vertexB;
-    vec4 vertexC;
-    vec4 normal;
-};
-
 struct UnpaddedTriangle
 {
     float  x_1,  y_1,  z_1;

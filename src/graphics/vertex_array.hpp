@@ -19,6 +19,8 @@ namespace eng
         VertexArray(GLuint shared_index_buffer, int unsigned index_count);
         ~VertexArray();
 
+        void setIndexCount(int unsigned count);
+
         void bind() const;
         void drawElements() const;
         void setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer);

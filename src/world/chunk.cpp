@@ -21,18 +21,6 @@ namespace eng
         m_active = true;
     }
 
-    void Chunk::render(std::shared_ptr<Shader> const & shader, FirstPersonCamera const & camera) const
-    {
-        if (m_mesh_empty) return;
-        shader->bind();
-        shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(CHUNK_SIZE_IN_UNITS)) * glm::translate(glm::mat4(1.0f), glm::vec3(m_position.x, 0.0f, m_position.y)));
-        shader->setUniformMatrix4f("u_view", camera.getViewMatrix());
-        shader->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
-        shader->setUniformVector3f("u_camera_position_W", camera.getPosition());
-        m_vertex_array->bind();
-        m_vertex_array->drawElements();
-    }
-
     void Chunk::setNextUnused(Chunk * chunk)
     {
         m_next_unused = chunk;
@@ -44,9 +32,15 @@ namespace eng
         return m_next_unused;
     }
 
-    void Chunk::setMeshEmpty(bool mesh_empty)
+    bool Chunk::meshEmpty() const
     {
-        m_mesh_empty = mesh_empty;
+        return m_mesh_empty;
+    }
+
+    void Chunk::setIndexCount(int unsigned count)
+    {
+        m_vertex_array->setIndexCount(count);
+        m_mesh_empty = count == 0;
     }
 
     void Chunk::setActive(bool active)
@@ -57,6 +51,12 @@ namespace eng
     bool Chunk::isActive() const
     {
         return m_active;
+    }
+
+
+    std::shared_ptr<VertexArray> Chunk::getVertexArray() const
+    {
+        return m_vertex_array;
     }
 
     std::shared_ptr<ShaderStorageBuffer> Chunk::getMesh() const
@@ -107,10 +107,5 @@ namespace eng
     {
         chunk->setNextUnused(m_first_unused);
         m_first_unused = chunk;
-    }
-
-    std::vector<Chunk> const & ChunkPool::getChunkList() const
-    {
-        return m_chunks;
     }
 }

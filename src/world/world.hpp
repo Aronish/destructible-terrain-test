@@ -33,15 +33,16 @@ namespace eng
         std::shared_ptr<Shader> m_chunk_renderer;
         std::shared_ptr<ShaderStorageBuffer> m_isosurface;
         std::shared_ptr<ShaderStorageBuffer> m_triangulation_table;
-        std::shared_ptr<ShaderStorageBuffer> m_counter_buffer;
         std::shared_ptr<AtomicCounterBuffer> m_triangle_counter;
 
         GLuint m_max_chunk_index_buffer;
+        int unsigned * m_counter_buffer;
 
         ChunkPool m_chunk_pool;
-        //std::vector<Chunk> m_chunks{(2 * m_render_distance + 1) * (2 * m_render_distance + 1)};
 
     public:
+        ~World();
+
         void onRendererInit(AssetManager const & asset_manager);
 
         void initDependentBuffers();

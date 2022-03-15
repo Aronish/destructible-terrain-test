@@ -28,6 +28,11 @@ namespace eng
         glDeleteBuffers(1, &m_index_buffer);
     }
 
+    void VertexArray::setIndexCount(int unsigned count)
+    {
+        m_index_count = count;
+    }
+
     void VertexArray::setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer)
     {
         glBindVertexArray(m_vertex_array);
