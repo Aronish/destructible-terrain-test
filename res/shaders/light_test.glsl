@@ -38,19 +38,18 @@ void main()
     vec3 half_way_direction = normalize(direction + view_direction);
 
     float diffuse_factor = max(dot(normal, direction), 0.0f);
-    //vec3 diffuse = vec3(0.8f, 0.2f, 0.3f) * diffuse_factor;
 
     float steepness = 1.0f - dot(normal, vec3(0.0f, 1.0f, 0.0f));
     vec3 diffuse = vec3(diffuse_factor);
     if (v_position_W.y < 0.05f)
     {
         diffuse *= vec3(0.64f, 0.77f, 0.52f);
-    } else if (v_position_W.y >= 0.05f && v_position_W.y < 3.0f)
+    } else if (v_position_W.y >= 0.05f && v_position_W.y < 4.85f)
     {
         diffuse *= vec3(0.22f, 0.42f, 0.046f);// * steepness;
     } else
     {
-        diffuse *= vec3(0.76f, 0.9f, 0.89f);
+        diffuse *= vec3(0.3f, 0.3f, 0.3f);
     }
 
     vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);

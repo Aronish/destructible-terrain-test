@@ -31,6 +31,7 @@ namespace eng
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
 
+        m_camera.setPosition({ 0.0f, 1.0f, 0.0f });
         m_world.onRendererInit(m_asset_manager);
         m_world.generateChunks({ 0.0f, 0.0f });
     }
@@ -67,6 +68,8 @@ namespace eng
     }
 
     int static resolution = 1, octaves = 1;
+    WorldGenerationConfig static config;
+    bool static tweakable_lac_per = false;
 
     void Application::render()
     {
@@ -89,15 +92,27 @@ namespace eng
         if (values_changed |= ImGui::InputInt("Octaves", &octaves, 1, 1))
         {
             if (octaves < 1) octaves = 1;
-            m_world.m_octaves = octaves;
+            config.m_octaves = octaves;
         }
-        values_changed |= ImGui::DragFloat("Frequency", &m_world.m_frequency, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Amplitude", &m_world.m_amplitude, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Lacunarity", &m_world.m_lacunarity, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Persistence", &m_world.m_persistence, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Frequency", &config.m_frequency, 0.01f, 0.0f);
+
+        if (values_changed |= ImGui::Checkbox("Tweakable Lacunarity/Persistence", &tweakable_lac_per))
+        {
+            if (!tweakable_lac_per)
+            {
+                config.m_lacunarity = 2.0f;
+                config.m_persistence = 0.5f;
+            }
+        }
+        if (tweakable_lac_per)
+        {
+            values_changed |= ImGui::DragFloat("Lacunarity", &config.m_lacunarity, 0.01f, 0.0f);
+            values_changed |= ImGui::DragFloat("Persistence", &config.m_persistence, 0.01f, 0.0f);
+        }
 
         if (values_changed)
         {
+            m_world.updateGenerationConfig(config);
             m_world.invalidateAllChunks();
             m_world.generateChunks(m_last_chunk_coords);
         }

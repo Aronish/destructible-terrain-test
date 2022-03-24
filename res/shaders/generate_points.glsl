@@ -5,16 +5,22 @@ const uint WORK_GROUP_SIZE = 8;
 
 uniform int u_points_per_axis;
 uniform vec3 u_position_offset;
-
+/*
 uniform int u_octaves = 1;
 uniform float u_frequency;
 uniform float u_amplitude;
 uniform float u_lacunarity;
 uniform float u_persistence;
-
-layout(std430, binding = 0) buffer Points
+*/
+layout(std430, binding = 0) buffer DensityDistribution
 {
     float values[];
+};
+
+layout(std140, binding = 1) uniform WorldGenerationConfig
+{
+    uint u_octaves;
+    float u_frequency, u_lacunarity, u_persistence;
 };
 
 layout(local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
@@ -120,47 +126,34 @@ float simplexNoise3d(vec3 v)
 
 float layeredNoise(vec2 position)
 {
-    float numerator = 0.0f;
-    float denominator = 0.0f;
+    float total_noise = 0.0f;
+    float total_amplitude = 0.0f;
     float frequency = u_frequency;
-    float amplitude = u_amplitude;
+    float amplitude = 1.0f;
     for (int i = 0; i < u_octaves; ++i)
     {
-        numerator += amplitude * simplexNoise2d(position * frequency);
-        denominator += amplitude;
+        total_noise += amplitude * simplexNoise2d(position * frequency);
+        total_amplitude += amplitude;
         frequency *= u_lacunarity;
         amplitude *= u_persistence;
     }
-    return numerator / denominator;
+    return total_noise / total_amplitude;
 }
 
 float layeredNoise(vec3 position)
 {
-#if 0
-    float numerator = 0.0f;
-    float denominator = 0.0f;
+    float total_noise = 0.0f;
+    float total_amplitude = 0.0f;
     float frequency = u_frequency;
-    float amplitude = u_amplitude;
+    float amplitude = 1.0f;
     for (int i = 0; i < u_octaves; ++i)
     {
-        numerator += amplitude * simplexNoise3d(position * frequency);
-        denominator += amplitude;
+        total_noise += amplitude * simplexNoise3d(position * frequency);
+        total_amplitude += amplitude;
         frequency *= u_lacunarity;
         amplitude *= u_persistence;
     }
-    return numerator / denominator;
-#else
-    float noise_sum = 0.0f;
-    float frequency = u_frequency;
-    float amplitude = u_amplitude;
-    for (int i = 0; i < u_octaves; ++i)
-    {
-        noise_sum += amplitude * simplexNoise3d(position * frequency);
-        frequency *= u_lacunarity;
-        amplitude *= u_persistence;
-    }
-    return noise_sum;
-#endif
+    return total_noise / total_amplitude;
 }
 
 void main()
@@ -169,5 +162,5 @@ void main()
     float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * u_points_per_axis) / resolution,
           y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * u_points_per_axis) / resolution,
           z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * u_points_per_axis) / resolution;
-    values[gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis + gl_GlobalInvocationID.y * u_points_per_axis + gl_GlobalInvocationID.x] = y - layeredNoise(vec3(x, y, z));
+    values[gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis + gl_GlobalInvocationID.y * u_points_per_axis + gl_GlobalInvocationID.x] = y - 8.0f * pow(layeredNoise(vec2(x, z)) * 0.5f + 0.5, 4.0f);
 }

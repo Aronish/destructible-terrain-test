@@ -20,7 +20,7 @@ namespace eng
         glBindBufferBase(GL_UNIFORM_BUFFER, binding_point, m_id);
     }
 
-    void UniformBuffer::setSubDataUnsafe(float * data, size_t size, int offset) const
+    void UniformBuffer::setSubDataUnsafe(void const * data, size_t size, int offset) const
     {
         glBindBuffer(GL_UNIFORM_BUFFER, m_id);
         glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);

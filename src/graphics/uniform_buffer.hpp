@@ -12,7 +12,7 @@ namespace eng
         ~UniformBuffer();
 
         void bind(int binding_point) const;
-        void setSubDataUnsafe(float * data, size_t size, int offset) const;
+        void setSubDataUnsafe(void const * data, size_t size, int offset) const;
         void bindBuffer() const;
         void unbindBuffer() const;
     };

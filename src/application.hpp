@@ -24,9 +24,8 @@ namespace eng
         AssetManager m_asset_manager;
         FirstPersonCamera m_camera;
         World m_world;
-
+        
         glm::vec2 m_last_chunk_coords;
-        int m_render_distance = 3;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title);

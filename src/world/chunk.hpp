@@ -15,7 +15,7 @@ namespace eng
     class Chunk
     {
     public:
-        int unsigned constexpr static inline CHUNK_SIZE_IN_UNITS = 1;
+        int unsigned constexpr static inline CHUNK_SIZE_IN_UNITS = 32;
 
     private:
         std::shared_ptr<VertexArray> m_vertex_array;

@@ -35,17 +35,17 @@ layout (std430, binding = 0) readonly buffer IsoSurface
     readonly float iso_surface_values[];
 };
 
-layout (std430, binding = 1) buffer Mesh
-{
-    UnpaddedTriangle triangles[];
-};
-
 layout (std430, binding = 2) readonly buffer TriangulationTable
 {
     readonly int tri_table[256][16];
 };
 
-layout (binding = 3) buffer IndirectDrawConfig
+layout (std430, binding = 3) buffer Mesh
+{
+    UnpaddedTriangle triangles[];
+};
+
+layout (binding = 4) buffer IndirectDrawConfig
 {
     uint index_count, prim_count, first_index, base_vertex, base_instance, triangle_count;
 };
@@ -99,31 +99,15 @@ void main()
         int a2 = cornerIndexAFromEdge[index_configuration[i + 2]];
         int b2 = cornerIndexBFromEdge[index_configuration[i + 2]];
 
-        UnpaddedTriangle triangle;
         vec3 vertexA = interpolateVertices(cube_corners[a0], cube_corners[b0]);
         vec3 vertexB = interpolateVertices(cube_corners[a1], cube_corners[b1]);
         vec3 vertexC = interpolateVertices(cube_corners[a2], cube_corners[b2]);
         vec3 normal = normalize(cross(vec3(vertexB) - vec3(vertexA), vec3(vertexC) - vec3(vertexA)));
-        triangle.x_1 = vertexA.x;
-        triangle.y_1 = vertexA.y;
-        triangle.z_1 = vertexA.z;
-        triangle.nx_1 = normal.x;
-        triangle.ny_1 = normal.y;
-        triangle.nz_1 = normal.z;
-        
-        triangle.x_2 = vertexB.x;
-        triangle.y_2 = vertexB.y;
-        triangle.z_2 = vertexB.z;
-        triangle.nx_2 = normal.x;
-        triangle.ny_2 = normal.y;
-        triangle.nz_2 = normal.z;
-
-        triangle.x_3 = vertexC.x;
-        triangle.y_3 = vertexC.y;
-        triangle.z_3 = vertexC.z;
-        triangle.nx_3 = normal.x;
-        triangle.ny_3 = normal.y;
-        triangle.nz_3 = normal.z;
+        UnpaddedTriangle triangle = UnpaddedTriangle(
+            vertexA.x, vertexA.y, vertexA.z, normal.x, normal.y, normal.z,
+            vertexB.x, vertexB.y, vertexB.z, normal.x, normal.y, normal.z,
+            vertexC.x, vertexC.y, vertexC.z, normal.x, normal.y, normal.z
+        );
         triangles[atomicAdd(triangle_count, 1)] = triangle;
         atomicAdd(index_count, 3);
     }
