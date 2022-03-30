@@ -30,7 +30,7 @@ namespace eng
         } m_user_pointer;
 
     public:
-        Window(unsigned int width, unsigned int height, char const * title, EventCallback event_callback);
+        Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback);
 
         ~Window();
 

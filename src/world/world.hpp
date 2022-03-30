@@ -5,6 +5,7 @@
 
 #include <glad/glad.h>
 
+#include "event/key_event.hpp"
 #include "first_person_camera.hpp"
 #include "graphics/asset.hpp"
 #include "graphics/atomic_counter_buffer.hpp"
@@ -18,25 +19,25 @@ namespace eng
 {
     struct WorldGenerationConfig
     {
-        int unsigned m_octaves = 5;
-        float m_frequency = 0.08f, m_lacunarity = 1.7f, m_persistence = 1.0f / m_lacunarity;
+        int m_octaves_2d = 5, m_octaves_3d = 3;
+        float m_frequency_2d = 0.05f, m_lacunarity_2d = 1.7f, m_persistence_2d = 1.0f / m_lacunarity_2d, m_amplitude_2d = 1.0f, m_exponent_2d = 4.0f;
+        float m_frequency_3d = 0.05f, m_lacunarity_3d = 1.7f, m_persistence_3d = 1.0f / m_lacunarity_3d, m_amplitude_3d = 1.0f, m_exponent_3d = 4.0f;
+        float m_water_level{};
     };
 
     class World
     {
         friend class Chunk;
-        friend class Application; //For accessing these statics in GUI
-    public:
-        int unsigned static constexpr WORK_GROUP_SIZE = 8;
+        friend class Application; //For Debug UI
     private:
-        int unsigned static inline s_resolution = 2, s_points_per_axis = s_resolution * WORK_GROUP_SIZE, s_max_triangle_amount = (s_points_per_axis - 1) * (s_points_per_axis - 1) * (s_points_per_axis - 1) * 4;
-    public:
-        int m_octaves = 5;
+        int unsigned static constexpr WORK_GROUP_SIZE = 10;
     private:
+        int m_points_per_axis = 8, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
+        glm::ivec2 m_last_chunk_coords{};
         int m_render_distance = 4;
-        float m_surface_level = -0.1f;
+        float m_threshold{};
 
-        std::shared_ptr<UniformBuffer> m_uniform_buffer;
+        std::shared_ptr<UniformBuffer> m_generation_config;
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;
         std::shared_ptr<Shader> m_chunk_renderer;
@@ -52,20 +53,26 @@ namespace eng
 
         void onRendererInit(AssetManager const & asset_manager);
 
+        void onMousePressed(MousePressedEvent const & event);
+
+        void onKeyPressed(KeyPressedEvent const & event);
+
+        void onPlayerMoved(FirstPersonCamera const & camera);
+
         void initDependentBuffers();
         
         void updateGenerationConfig(WorldGenerationConfig const config);
         
-        void setResolution(int unsigned resolution);
+        void setPointsPerAxis(int unsigned point_number);
 
         void setRenderDistance(int unsigned render_distance);
 
         void invalidateAllChunks();
 
-        void generateChunks(glm::ivec2 const & origin);
+        void generateChunks();
 
         void render(FirstPersonCamera const & camera) const;
 
-        int unsigned static getPointsPerAxis();
+        int unsigned getPointsPerAxis();
     };
 }

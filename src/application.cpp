@@ -16,8 +16,8 @@
 
 namespace eng
 {
-    Application::Application(unsigned int width, unsigned int height, char const * title)
-        : m_window(width, height, title, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height)
+    Application::Application(unsigned int width, unsigned int height, char const * title, bool maximized)
+        : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height)
     {
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
@@ -31,9 +31,9 @@ namespace eng
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
 
-        m_camera.setPosition({ 0.0f, 1.0f, 0.0f });
+        m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
         m_world.onRendererInit(m_asset_manager);
-        m_world.generateChunks({ 0.0f, 0.0f });
+        m_world.generateChunks();
     }
 
     void Application::onEvent(Event const & event)
@@ -50,7 +50,9 @@ namespace eng
                 m_window.setCursorVisibility(!m_window.isCursorVisible());
                 m_camera.setCursorPosition(event.m_window.getCursorPosition());
             }
+            m_world.onKeyPressed(event);
         });
+        EventDispatcher::dispatch<MousePressedEvent>(event, &World::onMousePressed, &m_world);
     }
 
     void Application::update(float delta_time)
@@ -58,16 +60,10 @@ namespace eng
         glfwPollEvents();
         if (m_camera.update(delta_time, m_window))
         {
-            auto chunk_coords = floor(glm::vec2(m_camera.getPosition().x, m_camera.getPosition().z) / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS));
-            if (m_last_chunk_coords != chunk_coords)
-            {
-                m_last_chunk_coords = chunk_coords;
-                m_world.generateChunks(m_last_chunk_coords);
-            }
+            m_world.onPlayerMoved(m_camera);
         }
     }
 
-    int static resolution = 1, octaves = 1;
     WorldGenerationConfig static config;
     bool static tweakable_lac_per = false;
 
@@ -83,38 +79,62 @@ namespace eng
 
         bool values_changed = false;
 
-        values_changed |= ImGui::DragFloat("Surface Level", &m_world.m_surface_level, 0.05f);
-        if (values_changed |= ImGui::InputInt("Resolution", &resolution, 1, 1))
-        {
-            if (resolution < 1) resolution = 1;
-            m_world.setResolution(resolution);
-        }
-        if (values_changed |= ImGui::InputInt("Octaves", &octaves, 1, 1))
-        {
-            if (octaves < 1) octaves = 1;
-            config.m_octaves = octaves;
-        }
-        values_changed |= ImGui::DragFloat("Frequency", &config.m_frequency, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Threshold", &m_world.m_threshold, 0.05f);
+        values_changed |= ImGui::DragFloat("Water Level", &config.m_water_level, 0.01f, 0.0f);
 
+        if (values_changed |= ImGui::InputInt("Points/Chunk Axis", &m_world.m_points_per_axis, 1, 1))
+        {
+            m_world.setPointsPerAxis(m_world.m_points_per_axis);
+        }
+        
         if (values_changed |= ImGui::Checkbox("Tweakable Lacunarity/Persistence", &tweakable_lac_per))
         {
             if (!tweakable_lac_per)
             {
-                config.m_lacunarity = 2.0f;
-                config.m_persistence = 0.5f;
+                config.m_lacunarity_2d = 2.0f;
+                config.m_persistence_2d = 0.5f;
+                config.m_lacunarity_3d = 2.0f;
+                config.m_persistence_3d = 0.5f;
             }
         }
+
+        ImGui::Separator();
+        ImGui::Text("2D Noise");
+        if (values_changed |= ImGui::InputInt("Octaves 2D", &config.m_octaves_2d, 1, 1))
+        {
+            if (config.m_octaves_2d < 1) config.m_octaves_2d = 1;
+        }
+        values_changed |= ImGui::DragFloat("Frequency 2D", &config.m_frequency_2d, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Amplitude 2D", &config.m_amplitude_2d, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Exponent 2D", &config.m_exponent_2d, 0.01f, 0.0f);
+
         if (tweakable_lac_per)
         {
-            values_changed |= ImGui::DragFloat("Lacunarity", &config.m_lacunarity, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Persistence", &config.m_persistence, 0.01f, 0.0f);
+            values_changed |= ImGui::DragFloat("Lacunarity 2D", &config.m_lacunarity_2d, 0.01f, 0.0f);
+            values_changed |= ImGui::DragFloat("Persistence 2D", &config.m_persistence_2d, 0.01f, 0.0f);
+        }
+
+        ImGui::Separator();
+        ImGui::Text("3D Noise");
+        if (values_changed |= ImGui::InputInt("Octaves 3D", &config.m_octaves_3d, 1, 1))
+        {
+            if (config.m_octaves_3d < 1) config.m_octaves_3d = 1;
+        }
+        values_changed |= ImGui::DragFloat("Frequency 3D", &config.m_frequency_3d, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Amplitude 3D", &config.m_amplitude_3d, 0.01f, 0.0f);
+        values_changed |= ImGui::DragFloat("Exponent 3D", &config.m_exponent_3d, 0.01f, 0.0f);
+
+        if (tweakable_lac_per)
+        {
+            values_changed |= ImGui::DragFloat("Lacunarity 3D", &config.m_lacunarity_3d, 0.01f, 0.0f);
+            values_changed |= ImGui::DragFloat("Persistence 3D", &config.m_persistence_3d, 0.01f, 0.0f);
         }
 
         if (values_changed)
         {
             m_world.updateGenerationConfig(config);
             m_world.invalidateAllChunks();
-            m_world.generateChunks(m_last_chunk_coords);
+            m_world.generateChunks();
         }
 
         ImGui::Render();

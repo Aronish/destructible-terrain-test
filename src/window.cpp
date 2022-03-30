@@ -6,7 +6,7 @@
 
 namespace eng
 {
-    Window::Window(unsigned int width, unsigned int height, char const * title, EventCallback event_callback)
+    Window::Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback)
         : m_user_pointer(std::move(event_callback), *this)
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
@@ -20,8 +20,14 @@ namespace eng
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
+
+        GLFWvidmode const * video_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
         m_window_handle = glfwCreateWindow(width, height, title, nullptr, nullptr);
         if (!m_window_handle) ENG_LOG("[GLFW]: Window could not be created!");
+
+        if (!maximized) glfwSetWindowPos(m_window_handle, (video_mode->width - width) / 2.0f, (video_mode->height - height) / 2.0f);
         
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);

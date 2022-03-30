@@ -1,7 +1,7 @@
 #shader comp
 #version 460 core
 
-const uint WORK_GROUP_SIZE = 8;
+const uint WORK_GROUP_SIZE = 10;
 
 const int cornerIndexAFromEdge[12] =
 {
@@ -50,11 +50,11 @@ layout (binding = 4) buffer IndirectDrawConfig
     uint index_count, prim_count, first_index, base_vertex, base_instance, triangle_count;
 };
 
-uniform float u_surface_level = 0.0f;
+uniform float u_threshold = 0.0f;
 
 vec3 interpolateVertices(vec4 v1, vec4 v2)
 {
-    float t = (u_surface_level - v1.w) / (v2.w - v1.w);
+    float t = (u_threshold - v1.w) / (v2.w - v1.w);
     return v1.xyz + t * (v2.xyz - v1.xyz);
 }
 
@@ -62,9 +62,10 @@ layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_si
 
 void main()
 {
-    if (gl_GlobalInvocationID.x >= u_points_per_axis - 1 || gl_GlobalInvocationID.y >= u_points_per_axis - 1 || gl_GlobalInvocationID.z >= u_points_per_axis - 1) return;
+    int cube_volumes = u_points_per_axis - 1;
+    if (gl_GlobalInvocationID.x >= cube_volumes || gl_GlobalInvocationID.y >= cube_volumes || gl_GlobalInvocationID.z >= cube_volumes) return;
 
-    float step_size = 1.0f / float(u_points_per_axis - 1);
+    float step_size = 1.0f / float(cube_volumes);
     vec3 scaled_coordinate = vec3(gl_GlobalInvocationID) * step_size;
 
     const vec4 cube_corners[8] =
@@ -82,11 +83,11 @@ void main()
     uint cube_index = 0;
     for (uint i = 0; i < cube_corners.length(); ++i)
     {
-        if (cube_corners[i].w < u_surface_level) cube_index |= 1 << i;
+        if (cube_corners[i].w < u_threshold) cube_index |= 1 << i;
     }
     if (cube_index == 0 || cube_index == 255) return;
 
-    const int index_configuration[] = tri_table[cube_index];
+    const int index_configuration[16] = tri_table[cube_index];
 
     for (int i = 0; index_configuration[i] != -1; i += 3)
     {
@@ -102,7 +103,7 @@ void main()
         vec3 vertexA = interpolateVertices(cube_corners[a0], cube_corners[b0]);
         vec3 vertexB = interpolateVertices(cube_corners[a1], cube_corners[b1]);
         vec3 vertexC = interpolateVertices(cube_corners[a2], cube_corners[b2]);
-        vec3 normal = normalize(cross(vec3(vertexB) - vec3(vertexA), vec3(vertexC) - vec3(vertexA)));
+        vec3 normal = normalize(cross(vertexB - vertexA, vertexC - vertexA));
         UnpaddedTriangle triangle = UnpaddedTriangle(
             vertexA.x, vertexA.y, vertexA.z, normal.x, normal.y, normal.z,
             vertexB.x, vertexB.y, vertexB.z, normal.x, normal.y, normal.z,

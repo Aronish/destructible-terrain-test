@@ -24,11 +24,9 @@ namespace eng
         AssetManager m_asset_manager;
         FirstPersonCamera m_camera;
         World m_world;
-        
-        glm::vec2 m_last_chunk_coords;
 
     public:
-        Application(unsigned int width, unsigned int height, char const * title);
+        Application(unsigned int width, unsigned int height, char const * title, bool maximized);
 
         void run();
         void onEvent(Event const & event);

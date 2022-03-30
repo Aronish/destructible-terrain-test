@@ -270,7 +270,7 @@ namespace eng
             { 0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
         };
-        m_uniform_buffer = std::make_shared<UniformBuffer>(sizeof(WorldGenerationConfig));
+        m_generation_config = std::make_shared<UniformBuffer>(sizeof(WorldGenerationConfig));
 
         m_triangulation_table = std::make_shared<ShaderStorageBuffer>(sizeof(tri_table), tri_table, 0);
         m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
@@ -278,16 +278,8 @@ namespace eng
         m_chunk_renderer = asset_manager.getShader("res/shaders/light_test.glsl");
 
         glCreateBuffers(1, &m_max_chunk_index_buffer);
-        glBindBuffer(GL_ARRAY_BUFFER, m_max_chunk_index_buffer);
-        std::vector<int> max_indices(s_max_triangle_amount * 3);
-        for (int index = 0; index < max_indices.size(); ++index)
-        {
-            max_indices[index] = index;
-        }
-        glBufferData(GL_ARRAY_BUFFER, sizeof(int) * max_indices.size(), &max_indices[0], GL_STATIC_COPY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        m_chunk_pool.initialize((2 * m_render_distance + 1) * (2 * m_render_distance + 1), m_max_chunk_index_buffer, s_max_triangle_amount * 3);
+        m_chunk_pool.initialize((2 * m_render_distance + 1) * (2 * m_render_distance + 1), m_max_chunk_index_buffer, m_max_triangle_count);
 
         initDependentBuffers();
         updateGenerationConfig(WorldGenerationConfig{});
@@ -295,15 +287,52 @@ namespace eng
 
     void World::initDependentBuffers()
     {
-        m_isosurface = std::make_shared<ShaderStorageBuffer>(sizeof(float) * s_points_per_axis * s_points_per_axis * s_points_per_axis, GL_DYNAMIC_COPY);
-        ENG_LOG_F("%d", m_isosurface->getId());
+        glBindBuffer(GL_ARRAY_BUFFER, m_max_chunk_index_buffer);
+        std::vector<int> max_indices(m_max_triangle_count * 3);
+        for (int index = 0; index < max_indices.size(); ++index)
+        {
+            max_indices[index] = index;
+        }
+        glBufferData(GL_ARRAY_BUFFER, sizeof(int) * max_indices.size(), &max_indices[0], GL_STATIC_COPY);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        m_chunk_pool.setMeshConfig(m_max_chunk_index_buffer, m_max_triangle_count);
+
+        m_isosurface = std::make_shared<ShaderStorageBuffer>(sizeof(float) * m_points_per_axis * m_points_per_axis * m_points_per_axis, GL_DYNAMIC_COPY);
+    }
+
+    void World::onMousePressed(MousePressedEvent const & event)
+    {
+        if (event.m_button_code == GLFW_MOUSE_BUTTON_1)
+        {
+            ENG_LOG_F("X: %d, Y: %d", m_last_chunk_coords.x, m_last_chunk_coords.y);
+            auto result = std::find_if(m_chunk_pool.begin(), m_chunk_pool.end(), [&](Chunk chunk) { return chunk.isActive() && chunk.getPosition() == m_last_chunk_coords; });
+            if (result != m_chunk_pool.end()) ENG_LOG_F("Found chunk: %d", (*result).getMesh()->getId());
+        }
+    }
+
+    void World::onKeyPressed(KeyPressedEvent const & event)
+    {
+        if (event.m_key_code == GLFW_KEY_R)
+        {
+            m_density_generator->compile("res/shaders/generate_points.glsl");
+        }
+    }
+
+    void World::onPlayerMoved(FirstPersonCamera const & camera)
+    {
+        auto chunk_coords = static_cast<glm::ivec2>(floor(glm::vec2(camera.getPosition().x, camera.getPosition().z) / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS)));
+        if (m_last_chunk_coords != chunk_coords)
+        {
+            m_last_chunk_coords = chunk_coords;
+            generateChunks();
+        }
     }
 
     void World::updateGenerationConfig(WorldGenerationConfig const config)
     {
-        m_uniform_buffer->bindBuffer();
-        m_uniform_buffer->setSubDataUnsafe(reinterpret_cast<void const *>(&config), sizeof(WorldGenerationConfig), 0);
-        m_uniform_buffer->unbindBuffer();
+        m_generation_config->bindBuffer();
+        m_generation_config->setSubDataUnsafe(reinterpret_cast<void const *>(&config), sizeof(WorldGenerationConfig), 0);
+        m_generation_config->unbindBuffer();
     }
 
     void World::setRenderDistance(int unsigned render_distance)
@@ -319,37 +348,36 @@ namespace eng
         }
     }
 
-    void World::generateChunks(glm::ivec2 const & origin)
+    void World::generateChunks()
     {
         auto start = std::chrono::high_resolution_clock::now();
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive()) continue;
-            if (glm::length(static_cast<glm::vec2>(origin - chunk.getPosition())) > m_render_distance)
+            if (glm::length(static_cast<glm::vec2>(m_last_chunk_coords - chunk.getPosition())) > m_render_distance)
             {
                 m_chunk_pool.deactivateChunk(&chunk);
             }
         }
         
         m_isosurface->bind(0);
-        m_uniform_buffer->bind(1);
+        m_generation_config->bind(1);
         m_triangulation_table->bind(2);
-        for (int x = origin.x - m_render_distance; x <= origin.x + m_render_distance; ++x)
+        for (int x = m_last_chunk_coords.x - m_render_distance; x <= m_last_chunk_coords.x + m_render_distance; ++x)
         {
-            for (int z = origin.y - m_render_distance; z <= origin.y + m_render_distance; ++z)
+            for (int z = m_last_chunk_coords.y - m_render_distance; z <= m_last_chunk_coords.y + m_render_distance; ++z)
             {
                 if (std::find_if(m_chunk_pool.begin(), m_chunk_pool.end(), [&](Chunk chunk) { return chunk.isActive() && (chunk.getPosition() == glm::ivec2(x, z)); }) == m_chunk_pool.end())
                 {
                     Chunk * chunk = nullptr;
                     if (!m_chunk_pool.activateChunk(&chunk, glm::ivec2{ x, z })) continue;
-                    // For now, chunks can't share edge valuese
-                    glm::vec2 const noise_offset_correction = { static_cast<float>(x) / s_points_per_axis, static_cast<float>(z) / s_points_per_axis };
-
                     // Generate values for all points
                     m_density_generator->bind();
-                    m_density_generator->setUniformInt("u_points_per_axis", s_points_per_axis);
-                    m_density_generator->setUniformVector3f("u_position_offset", glm::vec3(static_cast<float>(x) - noise_offset_correction.x, 0.0f, static_cast<float>(z) - noise_offset_correction.y));
-                    m_density_generator->dispatchCompute(s_resolution, s_resolution, s_resolution);
+                    m_density_generator->setUniformInt("u_points_per_axis", m_points_per_axis);
+                    m_density_generator->setUniformInt("u_resolution", m_resolution);
+                    //m_density_generator->setUniformFloat("u_threshold", m_threshold);
+                    m_density_generator->setUniformVector3f("u_position_offset", glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(z)));
+                    m_density_generator->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                     // Run marching cubes
@@ -358,30 +386,32 @@ namespace eng
                     chunk->getIndirectDrawBuffer()->setSubDataUnsafe(initial_indirect_config, sizeof(initial_indirect_config), 0);
                     chunk->getIndirectDrawBuffer()->unbindBuffer();
                     m_marching_cubes->bind();
-                    m_marching_cubes->setUniformFloat("u_surface_level", m_surface_level);
-                    m_marching_cubes->setUniformInt("u_points_per_axis", s_points_per_axis);
+                    m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
+                    m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
                     chunk->getMesh()->bind(3);
                     chunk->getIndirectDrawBuffer()->bind(4);
-                    m_marching_cubes->dispatchCompute(s_resolution, s_resolution, s_resolution);
+                    m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
             }
         }
         auto end = std::chrono::high_resolution_clock::now();
-        ENG_LOG_F("%lld ns", (end - start).count());
+        //ENG_LOG_F("%lld ns", (end - start).count());
     }
 
-    void World::setResolution(int unsigned resolution)
+    void World::setPointsPerAxis(int unsigned point_number)
     {
-        s_resolution = resolution;
-        s_points_per_axis = s_resolution * WORK_GROUP_SIZE;
-        s_max_triangle_amount = (s_points_per_axis - 1) * (s_points_per_axis - 1) * (s_points_per_axis - 1) * 4;
+        if (point_number < 2) point_number = 2;
+        m_points_per_axis = point_number;
+        m_resolution = static_cast<int>(std::ceil(static_cast<float>(point_number) / WORK_GROUP_SIZE));
+        m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
         initDependentBuffers();
     }
 
     void World::render(FirstPersonCamera const & camera) const
     {
         m_chunk_renderer->bind();
+        m_generation_config->bind(0);
         m_chunk_renderer->setUniformMatrix4f("u_view", camera.getViewMatrix());
         m_chunk_renderer->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         m_chunk_renderer->setUniformVector3f("u_camera_position_W", camera.getPosition());
@@ -396,6 +426,6 @@ namespace eng
 
     int unsigned World::getPointsPerAxis()
     {
-        return s_points_per_axis;
+        return m_points_per_axis;
     }
 }

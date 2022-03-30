@@ -1,17 +1,13 @@
 #shader comp
 #version 460 core
 
-const uint WORK_GROUP_SIZE = 8;
+const uint WORK_GROUP_SIZE = 10;
 
 uniform int u_points_per_axis;
+uniform int u_resolution;
 uniform vec3 u_position_offset;
-/*
-uniform int u_octaves = 1;
-uniform float u_frequency;
-uniform float u_amplitude;
-uniform float u_lacunarity;
-uniform float u_persistence;
-*/
+uniform float u_threshold = 0.0f;
+
 layout(std430, binding = 0) buffer DensityDistribution
 {
     float values[];
@@ -19,13 +15,15 @@ layout(std430, binding = 0) buffer DensityDistribution
 
 layout(std140, binding = 1) uniform WorldGenerationConfig
 {
-    uint u_octaves;
-    float u_frequency, u_lacunarity, u_persistence;
+    int u_octaves_2d, u_octaves_3d;
+    float u_frequency_2d, u_lacunarity_2d, u_persistence_2d, u_amplitude_2d, u_exponent_2d;
+    float u_frequency_3d, u_lacunarity_3d, u_persistence_3d, u_amplitude_3d, u_exponent_3d;
+    float u_water_level;
 };
 
 layout(local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
 
-// Simplex 2D noise
+// Simplex 2D noise (-1, 1)
 vec3 permute(vec3 x)
 {
     return mod(((x * 34.0) + 1.0) * x, 289.0);
@@ -124,18 +122,17 @@ float simplexNoise3d(vec3 v)
     return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-float layeredNoise(vec2 position)
+float layeredNoise(vec2 position, int octaves, float frequency, float lacunarity, float persistence)
 {
     float total_noise = 0.0f;
     float total_amplitude = 0.0f;
-    float frequency = u_frequency;
     float amplitude = 1.0f;
-    for (int i = 0; i < u_octaves; ++i)
+    for (int i = 0; i < octaves; ++i)
     {
         total_noise += amplitude * simplexNoise2d(position * frequency);
         total_amplitude += amplitude;
-        frequency *= u_lacunarity;
-        amplitude *= u_persistence;
+        frequency *= lacunarity;
+        amplitude *= persistence;
     }
     return total_noise / total_amplitude;
 }
@@ -144,23 +141,37 @@ float layeredNoise(vec3 position)
 {
     float total_noise = 0.0f;
     float total_amplitude = 0.0f;
-    float frequency = u_frequency;
+    float frequency = u_frequency_3d;
     float amplitude = 1.0f;
-    for (int i = 0; i < u_octaves; ++i)
+    for (int i = 0; i < u_octaves_3d; ++i)
     {
         total_noise += amplitude * simplexNoise3d(position * frequency);
         total_amplitude += amplitude;
-        frequency *= u_lacunarity;
-        amplitude *= u_persistence;
+        frequency *= u_lacunarity_3d;
+        amplitude *= u_persistence_3d;
     }
     return total_noise / total_amplitude;
 }
 
 void main()
 {
-    float resolution = u_points_per_axis / WORK_GROUP_SIZE;
-    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * u_points_per_axis) / resolution,
-          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * u_points_per_axis) / resolution,
-          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * u_points_per_axis) / resolution;
-    values[gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis + gl_GlobalInvocationID.y * u_points_per_axis + gl_GlobalInvocationID.x] = y - 8.0f * pow(layeredNoise(vec2(x, z)) * 0.5f + 0.5, 4.0f);
+    int cube_volumes = u_points_per_axis - 1;
+    if (gl_GlobalInvocationID.x > cube_volumes || gl_GlobalInvocationID.y > cube_volumes || gl_GlobalInvocationID.z > cube_volumes) return;
+    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * float(cube_volumes)) / u_resolution,
+          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * float(cube_volumes)) / u_resolution,
+          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(cube_volumes)) / u_resolution;
+
+    float noise2d = u_amplitude_2d * pow(layeredNoise(vec2(x, z), u_octaves_2d, u_frequency_2d, u_lacunarity_2d, u_persistence_2d) * 0.5f + 0.5f, u_exponent_2d);
+    //float ridge_test = u_amplitude_3d * pow(-abs(layeredNoise(vec2(x + 58931.4f, z -358.9f), u_octaves_3d, u_frequency_3d, u_lacunarity_3d, u_persistence_3d)) + 1.0f, u_exponent_3d);
+    //float noise3d = u_amplitude_3d * pow(layeredNoise(vec3(x, y, z)) * 0.5f + 0.5f, u_exponent_3d);
+
+    float final_height = noise2d;
+    float final_density = y - final_height;
+    //if (final_density < u_water_level) final_density = u_water_level;
+    
+    values[
+        gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis +
+        gl_GlobalInvocationID.y * u_points_per_axis +
+        gl_GlobalInvocationID.x
+    ] = final_density;
 }

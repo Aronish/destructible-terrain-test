@@ -20,6 +20,8 @@ namespace eng
         explicit Shader(char const * file_path);
         ~Shader();
 
+        void compile(char const * file_path);
+
         void bind() const;
         void dispatchCompute(GLint num_groups_x, GLint num_groups_y, GLint num_groups_z) const;
 

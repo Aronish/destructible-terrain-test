@@ -28,6 +28,14 @@ in vec3 v_normal_W;
 
 uniform vec3 u_camera_position_W;
 
+layout (std140, binding = 0) uniform WorldGenerationConfig
+{
+    int u_octaves_2d, u_octaves_3d;
+    float u_frequency_2d, u_lacunarity_2d, u_persistence_2d, u_amplitude_2d, u_exponent_2d;
+    float u_frequency_3d, u_lacunarity_3d, u_persistence_3d, u_amplitude_3d, u_exponent_3d;
+    float u_water_level;
+};
+
 out vec4 o_color;
 
 void main()
@@ -38,7 +46,7 @@ void main()
     vec3 half_way_direction = normalize(direction + view_direction);
 
     float diffuse_factor = max(dot(normal, direction), 0.0f);
-
+/*
     float steepness = 1.0f - dot(normal, vec3(0.0f, 1.0f, 0.0f));
     vec3 diffuse = vec3(diffuse_factor);
     if (v_position_W.y < 0.05f)
@@ -51,8 +59,8 @@ void main()
     {
         diffuse *= vec3(0.3f, 0.3f, 0.3f);
     }
-
-    vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);
     vec3 ambient = vec3(0.1f * steepness);
-    o_color = vec4(ambient + diffuse + specular, 1.0f);
+*/
+    vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);
+    o_color = vec4(vec3(0.22f, 0.42f, 0.046f) * diffuse_factor + specular, 1.0f);
 }

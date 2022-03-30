@@ -74,6 +74,11 @@ namespace eng
 
     Shader::Shader(char const * file_path)
     {
+        compile(file_path);
+    }
+
+    void Shader::compile(char const * file_path)
+    {
         std::vector<GLuint> compiled_shaders = compileCustomShaders(parseCustomShader(file_path));
 
         m_id = glCreateProgram();
@@ -117,6 +122,7 @@ namespace eng
         }
 
         // Cache all uniform locations
+        m_uniform_locations.clear();
         GLint count;
         glGetProgramiv(m_id, GL_ACTIVE_UNIFORMS, &count);
 
