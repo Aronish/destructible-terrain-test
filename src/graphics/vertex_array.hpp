@@ -20,6 +20,9 @@ namespace eng
         ~VertexArray();
 
         void setIndexCount(int unsigned count);
+        GLsizei getIndexCount() const;
+
+        GLuint getVertexArrayId() const;
 
         void bind() const;
         void drawElements() const;

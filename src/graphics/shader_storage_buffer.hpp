@@ -13,7 +13,7 @@ namespace eng
 
     public:
         ShaderStorageBuffer(size_t size, GLenum usage);
-        ShaderStorageBuffer(size_t size, auto * data, GLenum usage) //READONLY
+        ShaderStorageBuffer(size_t size, auto * data, GLenum usage) //Immutable buffer, mutable data
         {
             glCreateBuffers(1, &m_id);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_id);

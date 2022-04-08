@@ -9,8 +9,8 @@ namespace eng
     Texture::Texture(char const * path)
     {
         stbi_set_flip_vertically_on_load(true);
-        int width, height, channels;
-        unsigned char * data = stbi_load(path, &width, &height, &channels, 0);
+        int channels;
+        unsigned char * data = stbi_load(path, &m_width, &m_height, &channels, 0);
 #ifdef ENG_DEBUG
         if (!data)
         {
@@ -41,11 +41,11 @@ namespace eng
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, internal_format, m_width, m_height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
         stbi_image_free(data);
-        ENG_LOG_F("Loaded texture %s | Width: %d, Height %d, Channels: %d", path, width, height, channels);
+        ENG_LOG_F("Loaded texture %s | Width: %d, Height %d, Channels: %d", path, m_width, m_height, channels);
     }
 
     Texture::~Texture()
@@ -56,5 +56,15 @@ namespace eng
     void Texture::bind(unsigned int unit) const
     {
         glBindTextureUnit(unit, m_texture_handle);
+    }
+
+    int Texture::getWidth() const
+    {
+        return m_width;
+    }
+
+    int Texture::getHeight() const
+    {
+        return m_height;
     }
 }

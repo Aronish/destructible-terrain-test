@@ -14,9 +14,6 @@ namespace eng
 {
     class Chunk
     {
-    public:
-        int unsigned constexpr static inline CHUNK_SIZE_IN_UNITS = 1;
-
     private:
         std::shared_ptr<VertexArray> m_vertex_array;
         std::shared_ptr<ShaderStorageBuffer> m_mesh;

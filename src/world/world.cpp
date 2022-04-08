@@ -272,10 +272,19 @@ namespace eng
         };
         m_generation_config = std::make_shared<UniformBuffer>(sizeof(WorldGenerationConfig));
 
+        int single_triangle_indices[] = { 0, 1, 2 };
+
         m_triangulation_table = std::make_shared<ShaderStorageBuffer>(sizeof(tri_table), tri_table, 0);
         m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
         m_marching_cubes = asset_manager.getShader("res/shaders/marching_cubes.glsl");
         m_chunk_renderer = asset_manager.getShader("res/shaders/light_test.glsl");
+        m_mesh_ray_intersect = asset_manager.getShader("res/shaders/mesh_ray_intersect.glsl");
+
+        m_ray_hit_data = std::make_shared<ShaderStorageBuffer>(sizeof(float) * 19, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+        m_hit_triangle_buffer = std::make_shared<VertexArray>(single_triangle_indices, sizeof(single_triangle_indices));
+        m_hit_triangle_buffer->setVertexData(m_ray_hit_data, VertexDataLayout{{{ 3, GL_FLOAT }, { 3, GL_FLOAT }}});
+
+        ENG_LOG_F("hit triangle buffer: %d", m_hit_triangle_buffer->getVertexArrayId());
 
         glCreateBuffers(1, &m_max_chunk_index_buffer);
 
@@ -300,13 +309,46 @@ namespace eng
         m_isosurface = std::make_shared<ShaderStorageBuffer>(sizeof(float) * m_points_per_axis * m_points_per_axis * m_points_per_axis, GL_DYNAMIC_COPY);
     }
 
-    void World::onMousePressed(MousePressedEvent const & event)
+    void World::onMousePressed(MousePressedEvent const & event, FirstPersonCamera const & camera)
     {
         if (event.m_button_code == GLFW_MOUSE_BUTTON_1)
         {
-            ENG_LOG_F("X: %d, Y: %d", m_last_chunk_coords.x, m_last_chunk_coords.y);
             auto result = std::find_if(m_chunk_pool.begin(), m_chunk_pool.end(), [&](Chunk chunk) { return chunk.isActive() && chunk.getPosition() == m_last_chunk_coords; });
-            if (result != m_chunk_pool.end()) ENG_LOG_F("Found chunk: %d", (*result).getMesh()->getId());
+            if (result == m_chunk_pool.end()) return;
+
+            float initial_hit_data[19] = {};
+            m_ray_hit_data->bindBuffer();
+            m_ray_hit_data->setSubDataUnsafe(initial_hit_data, sizeof(initial_hit_data), 0);
+            m_ray_hit_data->unbindBuffer();
+
+            glm::mat4 transform = glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(result->getPosition().x), 0.0f, static_cast<float>(result->getPosition().y)));
+
+            m_mesh_ray_intersect->bind();
+            m_mesh_ray_intersect->setUniformMatrix4f("u_transform", transform);
+            m_mesh_ray_intersect->setUniformVector3f("u_ray_origin", camera.getPosition());
+            m_mesh_ray_intersect->setUniformVector3f("u_ray_direction", camera.getDirection());
+            result->getMesh()->bind(0);
+            m_ray_hit_data->bind(1);
+
+            int unsigned triangle_count;
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, result->getIndirectDrawBuffer()->getId());
+            glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 5 * sizeof(int unsigned), sizeof(int unsigned), &triangle_count);
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+            int work_group_count = static_cast<int>(std::ceil(triangle_count / 1536.0f));
+            auto start = std::chrono::high_resolution_clock::now();
+            m_mesh_ray_intersect->dispatchCompute(work_group_count, 1, 1);
+            glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+
+            float triangle_hit;
+            m_ray_hit_data->bindBuffer();
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 18, sizeof(float), &triangle_hit);
+            m_ray_hit_data->unbindBuffer();
+            m_triangle_hit = triangle_hit;
+            
+            auto end = std::chrono::high_resolution_clock::now();
+            ENG_LOG_F("raycast: %lld ns", (end - start).count());
         }
     }
 
@@ -320,7 +362,7 @@ namespace eng
 
     void World::onPlayerMoved(FirstPersonCamera const & camera)
     {
-        auto chunk_coords = static_cast<glm::ivec2>(floor(glm::vec2(camera.getPosition().x, camera.getPosition().z) / static_cast<float>(Chunk::CHUNK_SIZE_IN_UNITS)));
+        auto chunk_coords = static_cast<glm::ivec2>(floor(glm::vec2(camera.getPosition().x, camera.getPosition().z) / static_cast<float>(m_chunk_size_in_units)));
         if (m_last_chunk_coords != chunk_coords)
         {
             m_last_chunk_coords = chunk_coords;
@@ -415,12 +457,20 @@ namespace eng
         m_chunk_renderer->setUniformMatrix4f("u_view", camera.getViewMatrix());
         m_chunk_renderer->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         m_chunk_renderer->setUniformVector3f("u_camera_position_W", camera.getPosition());
+        m_chunk_renderer->setUniformVector3f("u_color", glm::vec3(0.22f, 0.42f, 0.046f));
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive() || chunk.meshEmpty()) continue;
-            m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(Chunk::CHUNK_SIZE_IN_UNITS)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
+            m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
             chunk.getVertexArray()->bind();
             chunk.render();
+        }
+        if (m_triangle_hit)
+        {
+            m_chunk_renderer->setUniformMatrix4f("u_model", glm::mat4(1.0f));
+            m_chunk_renderer->setUniformVector3f("u_color", glm::vec3(1.0f, 0.0f, 0.0f));
+            m_hit_triangle_buffer->bind();
+            m_hit_triangle_buffer->drawElements();
         }
     }
 

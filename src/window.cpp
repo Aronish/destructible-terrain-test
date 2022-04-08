@@ -7,7 +7,7 @@
 namespace eng
 {
     Window::Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback)
-        : m_user_pointer(std::move(event_callback), *this)
+        : m_width(width), m_height(height), m_user_pointer(std::move(event_callback), *this)
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
 #ifdef ENG_DEBUG
@@ -27,12 +27,12 @@ namespace eng
         m_window_handle = glfwCreateWindow(width, height, title, nullptr, nullptr);
         if (!m_window_handle) ENG_LOG("[GLFW]: Window could not be created!");
 
-        if (!maximized) glfwSetWindowPos(m_window_handle, (video_mode->width - width) / 2.0f, (video_mode->height - height) / 2.0f);
+        if (!maximized) glfwSetWindowPos(m_window_handle, (video_mode->width - width) / 2, (video_mode->height - height) / 2);
         
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-#define ENG_DEBUG_LOG 0
+#define ENG_DEBUG_LOG 1
 #if defined(ENG_DEBUG) && ENG_DEBUG_LOG
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(
@@ -98,7 +98,7 @@ namespace eng
             user_pointer.m_window.m_mouse_y = y_pos;
         });
 
-        glfwSetWindowSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
+        glfwSetFramebufferSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
         {
             auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             user_pointer.m_window.setSize(width, height);
@@ -114,7 +114,19 @@ namespace eng
 
     void Window::setSize(unsigned int width, unsigned int height)
     {
+        m_width = width;
+        m_height = height;
         glViewport(0, 0, width, height);
+    }
+
+    int Window::getWidth() const
+    {
+        return m_width;
+    }
+
+    int Window::getHeight() const
+    {
+        return m_height;
     }
 
     void Window::setTitle(char const * title) const

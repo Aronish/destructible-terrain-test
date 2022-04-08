@@ -20,6 +20,7 @@ namespace eng
         GLFWwindow * m_window_handle;
         bool m_cursor_visible;
         double m_mouse_x, m_mouse_y;
+        int m_width, m_height;
 
         struct UserPointer
         {
@@ -35,6 +36,9 @@ namespace eng
         ~Window();
 
         void setSize(unsigned int width, unsigned int height);
+
+        int getWidth() const;
+        int getHeight() const;
 
         void setTitle(char const * title) const;
 

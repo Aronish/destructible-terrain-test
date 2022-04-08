@@ -25,6 +25,7 @@ namespace eng
         void bind() const;
         void dispatchCompute(GLint num_groups_x, GLint num_groups_y, GLint num_groups_z) const;
 
+        void setUniformMatrix3f(char const * name, glm::mat3 const & data);
         void setUniformMatrix4f(char const * name, glm::mat4 const & data);
         void setUniformVector3f(char const * name, glm::vec3 const & data);
         void setUniformFloat(char const * name, float data);

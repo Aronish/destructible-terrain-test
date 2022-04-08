@@ -35,13 +35,18 @@ namespace eng
         int m_points_per_axis = 8, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
         glm::ivec2 m_last_chunk_coords{};
         int m_render_distance = 4;
-        float m_threshold{};
+        float m_threshold{}, m_chunk_size_in_units = 1.0f;
+
+        bool m_triangle_hit;
+        std::shared_ptr<VertexArray> m_hit_triangle_buffer;
 
         std::shared_ptr<UniformBuffer> m_generation_config;
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;
         std::shared_ptr<Shader> m_chunk_renderer;
+        std::shared_ptr<Shader> m_mesh_ray_intersect;
         std::shared_ptr<ShaderStorageBuffer> m_isosurface;
+        std::shared_ptr<ShaderStorageBuffer> m_ray_hit_data;
         std::shared_ptr<ShaderStorageBuffer> m_triangulation_table;
 
         GLuint m_max_chunk_index_buffer;
@@ -53,7 +58,7 @@ namespace eng
 
         void onRendererInit(AssetManager const & asset_manager);
 
-        void onMousePressed(MousePressedEvent const & event);
+        void onMousePressed(MousePressedEvent const & event, FirstPersonCamera const & camera);
 
         void onKeyPressed(KeyPressedEvent const & event);
 

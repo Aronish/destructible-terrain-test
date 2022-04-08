@@ -24,6 +24,10 @@ namespace eng
         AssetManager m_asset_manager;
         FirstPersonCamera m_camera;
         World m_world;
+        std::shared_ptr<Texture> m_crosshair_texture;
+        std::shared_ptr<Shader> m_textured_quad_shader;
+        std::shared_ptr<VertexArray> m_crosshair;
+        std::shared_ptr<VertexBuffer> m_crosshair_quad_buffer;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title, bool maximized);

@@ -33,6 +33,16 @@ namespace eng
         m_index_count = count;
     }
 
+    GLsizei VertexArray::getIndexCount() const
+    {
+        return m_index_count;
+    }
+
+    GLuint VertexArray::getVertexArrayId() const
+    {
+        return m_vertex_array;
+    }
+
     void VertexArray::setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer)
     {
         glBindVertexArray(m_vertex_array);

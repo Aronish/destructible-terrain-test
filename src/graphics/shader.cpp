@@ -153,6 +153,19 @@ namespace eng
         glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
     }
 
+    void Shader::setUniformMatrix3f(char const * name, glm::mat3 const & data)
+    {
+#ifdef ENG_DEBUG
+        if (m_uniform_locations.find(name) == m_uniform_locations.end())
+        {
+            ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
+            return;
+        }
+#endif
+        GLuint location = m_uniform_locations[name];
+        glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(data));
+    }
+
     void Shader::setUniformMatrix4f(char const * name, glm::mat4 const & data)
     {
 #ifdef ENG_DEBUG

@@ -43,6 +43,11 @@ namespace eng
             return m_position;
         }
 
+        glm::vec3 const & getDirection() const
+        {
+            return m_direction;
+        }
+
         glm::mat4 const & getViewMatrix() const
         {
             return m_view_matrix;

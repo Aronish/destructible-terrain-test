@@ -4,7 +4,7 @@
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 
-uniform mat4 u_model;
+uniform mat4 u_model = mat4(1.0f);
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
@@ -27,6 +27,7 @@ in vec3 v_position_W;
 in vec3 v_normal_W;
 
 uniform vec3 u_camera_position_W;
+uniform vec3 u_color = vec3(0.22f, 0.42f, 0.046f);
 
 layout (std140, binding = 0) uniform WorldGenerationConfig
 {
@@ -61,6 +62,8 @@ void main()
     }
     vec3 ambient = vec3(0.1f * steepness);
 */
-    vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 4.0f);
-    o_color = vec4(vec3(0.22f, 0.42f, 0.046f) * diffuse_factor + specular, 1.0f);
+    float grid_x = int(floor(v_position_W.x)) % 2 == 0 ? 1.0f : 0.3f;
+    float grid_z = int(floor(v_position_W.z)) % 2 == 0 ? 0.3f : 1.0f;
+    vec3 specular = vec3(0.5f * grid_x * grid_z) * pow(max(dot(normal, half_way_direction), 0.0f), 32.0f);
+    o_color = vec4(u_color * diffuse_factor + specular, 1.0f);
 }

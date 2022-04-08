@@ -9,12 +9,12 @@ namespace eng
 {
     Chunk::Chunk(GLuint max_index_buffer, int unsigned max_triangle_count)
     {
-        m_mesh = std::make_shared<ShaderStorageBuffer>(max_triangle_count * sizeof(float) * 18, GL_DYNAMIC_COPY);
+        m_mesh = std::make_shared<ShaderStorageBuffer>(max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_STORAGE_BIT);
         m_vertex_array = std::make_shared<VertexArray>(max_index_buffer, max_triangle_count * 3);
         m_vertex_array->setVertexData(m_mesh, VertexDataLayout{{{3, GL_FLOAT}, {3, GL_FLOAT}}});
 
         int unsigned constexpr initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-        m_indirect_draw_buffer = std::make_shared<ShaderStorageBuffer>(sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT);
+        m_indirect_draw_buffer = std::make_shared<ShaderStorageBuffer>(sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
         m_next_unused = nullptr;
     }
