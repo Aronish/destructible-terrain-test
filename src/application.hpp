@@ -9,7 +9,6 @@
 #include "graphics/asset.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/texture.hpp"
-#include "graphics/vertex_buffer.hpp"
 #include "graphics/vertex_array.hpp"
 #include "window.hpp"
 #include "world/world.hpp"
@@ -26,8 +25,9 @@ namespace eng
         World m_world;
         std::shared_ptr<Texture> m_crosshair_texture;
         std::shared_ptr<Shader> m_textured_quad_shader;
-        std::shared_ptr<VertexArray> m_crosshair;
-        std::shared_ptr<VertexBuffer> m_crosshair_quad_buffer;
+        GLuint m_crosshair_va;
+        GLuint m_crosshair_vb;
+        GLuint m_crosshair_ib;
 
     public:
         Application(unsigned int width, unsigned int height, char const * title, bool maximized);

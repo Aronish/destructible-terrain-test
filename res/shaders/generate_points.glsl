@@ -6,7 +6,6 @@ const uint WORK_GROUP_SIZE = 10;
 uniform int u_points_per_axis;
 uniform int u_resolution;
 uniform vec3 u_position_offset;
-uniform float u_threshold = 0.0f;
 
 layout(std430, binding = 0) buffer DensityDistribution
 {

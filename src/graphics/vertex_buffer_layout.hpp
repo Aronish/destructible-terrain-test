@@ -18,6 +18,9 @@ namespace eng
 
     class VertexDataLayout
     {
+    public:
+        VertexDataLayout const static POSITION_NORMAL_3F;
+        VertexDataLayout const static POSIITON_UV_2F;
     private:
         std::vector<VertexDataElement> m_elements;
         unsigned int m_stride{};

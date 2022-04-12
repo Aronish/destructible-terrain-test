@@ -1,66 +1,11 @@
 #include "graphics/vertex_array.hpp"
 
-namespace eng
+namespace eng::VertexArray
 {
-    VertexArray::VertexArray(int * indices, size_t index_array_size) : m_index_count(static_cast<GLsizei>(index_array_size) / sizeof(int))
+    void associateVertexBuffer(GLuint vertex_array, GLuint vertex_buffer, VertexDataLayout const & layout)
     {
-        glCreateVertexArrays(1, &m_vertex_array);
-        glCreateBuffers(1, &m_index_buffer);
-
-        glBindVertexArray(m_vertex_array);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_index_buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)index_array_size, indices, GL_STATIC_DRAW);
-        glBindVertexArray(0);
-    }
-
-    VertexArray::VertexArray(GLuint shared_index_buffer, int unsigned index_count) : m_index_count(index_count)
-    {
-        m_index_buffer = shared_index_buffer;
-        glCreateVertexArrays(1, &m_vertex_array);
-        glBindVertexArray(m_vertex_array);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, shared_index_buffer);
-        glBindVertexArray(0);
-    }
-
-    VertexArray::~VertexArray()
-    {
-        glDeleteVertexArrays(1, &m_vertex_array);
-        glDeleteBuffers(1, &m_index_buffer);
-    }
-
-    void VertexArray::setIndexCount(int unsigned count)
-    {
-        m_index_count = count;
-    }
-
-    GLsizei VertexArray::getIndexCount() const
-    {
-        return m_index_count;
-    }
-
-    GLuint VertexArray::getVertexArrayId() const
-    {
-        return m_vertex_array;
-    }
-
-    void VertexArray::setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer)
-    {
-        glBindVertexArray(m_vertex_array);
-        vertex_buffer->bind();
-        int attrib_index = 0;
-        for (auto const & element : vertex_buffer->getLayout())
-        {
-            glEnableVertexAttribArray(attrib_index);
-            glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, vertex_buffer->getLayout().getStride(), reinterpret_cast<void const *>(element.m_offset));
-            ++attrib_index;
-        }
-        glBindVertexArray(0);
-    }
-
-    void VertexArray::setVertexData(std::shared_ptr<ShaderStorageBuffer> const & vertex_buffer, VertexDataLayout && layout)
-    {
-        glBindVertexArray(m_vertex_array);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer->getId());
+        glBindVertexArray(vertex_array);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
         int attrib_index = 0;
         for (auto const & element : layout)
         {
@@ -71,13 +16,11 @@ namespace eng
         glBindVertexArray(0);
     }
 
-    void VertexArray::bind() const
+    void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer, int * indices, size_t indices_size)
     {
-        glBindVertexArray(m_vertex_array);
-    }
-
-    void VertexArray::drawElements() const
-    {
-        glDrawElements(GL_TRIANGLES, m_index_count, GL_UNSIGNED_INT, nullptr);
+        glBindVertexArray(vertex_array);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
+        glBindVertexArray(0);
     }
 }

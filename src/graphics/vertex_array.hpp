@@ -4,29 +4,11 @@
 
 #include <glad/glad.h>
 
-#include "vertex_buffer.hpp"
 #include "shader_storage_buffer.hpp"
+#include "vertex_buffer_layout.hpp"
 
-namespace eng
+namespace eng::VertexArray
 {
-    class VertexArray
-    {
-    private:
-        GLuint m_vertex_array, m_index_buffer;
-        GLsizei m_index_count;
-    public:
-        VertexArray(int * indices, size_t index_array_size);
-        VertexArray(GLuint shared_index_buffer, int unsigned index_count);
-        ~VertexArray();
-
-        void setIndexCount(int unsigned count);
-        GLsizei getIndexCount() const;
-
-        GLuint getVertexArrayId() const;
-
-        void bind() const;
-        void drawElements() const;
-        void setVertexData(std::shared_ptr<VertexBuffer> const & vertex_buffer);
-        void setVertexData(std::shared_ptr<ShaderStorageBuffer> const & vertex_buffer, VertexDataLayout && layout);
-    };
+    void associateVertexBuffer(GLuint vertex_array, GLuint vertex_buffer, VertexDataLayout const & layout);
+    void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer, int * indices, size_t indices_size);
 }

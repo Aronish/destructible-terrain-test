@@ -4,12 +4,11 @@
 
 namespace eng
 {
-    World::~World()
+    World::World(AssetManager & asset_manager) : m_chunk_pool(asset_manager)
     {
-        glDeleteBuffers(1, &m_max_chunk_index_buffer);
     }
 
-    void World::onRendererInit(AssetManager const & asset_manager)
+    void World::onRendererInit(AssetManager & asset_manager)
     {
         int constexpr tri_table[256][16] =
         {
@@ -270,43 +269,42 @@ namespace eng
             { 0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
         };
-        m_generation_config = std::make_shared<UniformBuffer>(sizeof(WorldGenerationConfig));
+        m_isosurface_ss = asset_manager.createBuffer();
 
-        int single_triangle_indices[] = { 0, 1, 2 };
+        m_generation_config_u = asset_manager.createBuffer();
+        glBindBuffer(GL_UNIFORM_BUFFER, m_generation_config_u);
+        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(WorldGenerationConfig), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        m_triangulation_table = std::make_shared<ShaderStorageBuffer>(sizeof(tri_table), tri_table, 0);
+        m_triangulation_table_ss = asset_manager.createBuffer();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_triangulation_table_ss);
+        glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(tri_table), tri_table, 0);
+
         m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
         m_marching_cubes = asset_manager.getShader("res/shaders/marching_cubes.glsl");
         m_chunk_renderer = asset_manager.getShader("res/shaders/light_test.glsl");
         m_mesh_ray_intersect = asset_manager.getShader("res/shaders/mesh_ray_intersect.glsl");
 
-        m_ray_hit_data = std::make_shared<ShaderStorageBuffer>(sizeof(float) * 19, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
-        m_hit_triangle_buffer = std::make_shared<VertexArray>(single_triangle_indices, sizeof(single_triangle_indices));
-        m_hit_triangle_buffer->setVertexData(m_ray_hit_data, VertexDataLayout{{{ 3, GL_FLOAT }, { 3, GL_FLOAT }}});
+        m_ray_hit_data_ss = asset_manager.createBuffer();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ray_hit_data_ss);
+        glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 19, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
-        ENG_LOG_F("hit triangle buffer: %d", m_hit_triangle_buffer->getVertexArrayId());
+        m_hit_triangle_va = asset_manager.createVertexArray();
+        VertexArray::associateVertexBuffer(m_hit_triangle_va, m_ray_hit_data_ss, VertexDataLayout::POSITION_NORMAL_3F);
 
-        glCreateBuffers(1, &m_max_chunk_index_buffer);
+        ENG_LOG_F("hit triangle buffer: %d", m_ray_hit_data_ss);
 
-        m_chunk_pool.initialize((2 * m_render_distance + 1) * (2 * m_render_distance + 1), m_max_chunk_index_buffer, m_max_triangle_count);
+        m_chunk_pool.initialize(asset_manager, (2 * m_render_distance + 1) * (2 * m_render_distance + 1), m_max_triangle_count);
 
-        initDependentBuffers();
+        initDynamicBuffers();
         updateGenerationConfig(WorldGenerationConfig{});
     }
 
-    void World::initDependentBuffers()
+    void World::initDynamicBuffers()
     {
-        glBindBuffer(GL_ARRAY_BUFFER, m_max_chunk_index_buffer);
-        std::vector<int> max_indices(m_max_triangle_count * 3);
-        for (int index = 0; index < max_indices.size(); ++index)
-        {
-            max_indices[index] = index;
-        }
-        glBufferData(GL_ARRAY_BUFFER, sizeof(int) * max_indices.size(), &max_indices[0], GL_STATIC_COPY);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        m_chunk_pool.setMeshConfig(m_max_chunk_index_buffer, m_max_triangle_count);
+        m_chunk_pool.setMeshConfig(m_max_triangle_count);
 
-        m_isosurface = std::make_shared<ShaderStorageBuffer>(sizeof(float) * m_points_per_axis * m_points_per_axis * m_points_per_axis, GL_DYNAMIC_COPY);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_isosurface_ss);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * m_points_per_axis * m_points_per_axis * m_points_per_axis, nullptr, GL_DYNAMIC_COPY);
     }
 
     void World::onMousePressed(MousePressedEvent const & event, FirstPersonCamera const & camera)
@@ -316,22 +314,19 @@ namespace eng
             auto result = std::find_if(m_chunk_pool.begin(), m_chunk_pool.end(), [&](Chunk chunk) { return chunk.isActive() && chunk.getPosition() == m_last_chunk_coords; });
             if (result == m_chunk_pool.end()) return;
 
-            float initial_hit_data[19] = {};
-            m_ray_hit_data->bindBuffer();
-            m_ray_hit_data->setSubDataUnsafe(initial_hit_data, sizeof(initial_hit_data), 0);
-            m_ray_hit_data->unbindBuffer();
-
             glm::mat4 transform = glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(static_cast<float>(result->getPosition().x), 0.0f, static_cast<float>(result->getPosition().y)));
 
             m_mesh_ray_intersect->bind();
             m_mesh_ray_intersect->setUniformMatrix4f("u_transform", transform);
             m_mesh_ray_intersect->setUniformVector3f("u_ray_origin", camera.getPosition());
             m_mesh_ray_intersect->setUniformVector3f("u_ray_direction", camera.getDirection());
-            result->getMesh()->bind(0);
-            m_ray_hit_data->bind(1);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, result->getMeshVB());
+            float initial_hit_data[19] = {};
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_ray_hit_data_ss);
+            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_hit_data), initial_hit_data);
 
             int unsigned triangle_count;
-            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, result->getIndirectDrawBuffer()->getId());
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, result->getDrawIndirectBuffer());
             glGetBufferSubData(GL_DRAW_INDIRECT_BUFFER, 5 * sizeof(int unsigned), sizeof(int unsigned), &triangle_count);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 
@@ -342,9 +337,8 @@ namespace eng
             glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
 
             float triangle_hit;
-            m_ray_hit_data->bindBuffer();
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ray_hit_data_ss);
             glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 18, sizeof(float), &triangle_hit);
-            m_ray_hit_data->unbindBuffer();
             m_triangle_hit = triangle_hit;
             
             auto end = std::chrono::high_resolution_clock::now();
@@ -372,9 +366,8 @@ namespace eng
 
     void World::updateGenerationConfig(WorldGenerationConfig const config)
     {
-        m_generation_config->bindBuffer();
-        m_generation_config->setSubDataUnsafe(reinterpret_cast<void const *>(&config), sizeof(WorldGenerationConfig), 0);
-        m_generation_config->unbindBuffer();
+        glBindBuffer(GL_UNIFORM_BUFFER, m_generation_config_u);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(WorldGenerationConfig), &config);
     }
 
     void World::setRenderDistance(int unsigned render_distance)
@@ -402,9 +395,9 @@ namespace eng
             }
         }
         
-        m_isosurface->bind(0);
-        m_generation_config->bind(1);
-        m_triangulation_table->bind(2);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_isosurface_ss);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_generation_config_u);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_triangulation_table_ss);
         for (int x = m_last_chunk_coords.x - m_render_distance; x <= m_last_chunk_coords.x + m_render_distance; ++x)
         {
             for (int z = m_last_chunk_coords.y - m_render_distance; z <= m_last_chunk_coords.y + m_render_distance; ++z)
@@ -417,28 +410,26 @@ namespace eng
                     m_density_generator->bind();
                     m_density_generator->setUniformInt("u_points_per_axis", m_points_per_axis);
                     m_density_generator->setUniformInt("u_resolution", m_resolution);
-                    //m_density_generator->setUniformFloat("u_threshold", m_threshold);
                     m_density_generator->setUniformVector3f("u_position_offset", glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(z)));
                     m_density_generator->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                     // Run marching cubes
                     int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-                    chunk->getIndirectDrawBuffer()->bindBuffer();
-                    chunk->getIndirectDrawBuffer()->setSubDataUnsafe(initial_indirect_config, sizeof(initial_indirect_config), 0);
-                    chunk->getIndirectDrawBuffer()->unbindBuffer();
+                    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk->getDrawIndirectBuffer());
+                    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
                     m_marching_cubes->bind();
                     m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
                     m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
-                    chunk->getMesh()->bind(3);
-                    chunk->getIndirectDrawBuffer()->bind(4);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getMeshVB());
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, chunk->getDrawIndirectBuffer());
                     m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
             }
         }
         auto end = std::chrono::high_resolution_clock::now();
-        //ENG_LOG_F("%lld ns", (end - start).count());
+        ENG_LOG_F("%lld ns", (end - start).count());
     }
 
     void World::setPointsPerAxis(int unsigned point_number)
@@ -447,13 +438,13 @@ namespace eng
         m_points_per_axis = point_number;
         m_resolution = static_cast<int>(std::ceil(static_cast<float>(point_number) / WORK_GROUP_SIZE));
         m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
-        initDependentBuffers();
+        initDynamicBuffers();
     }
 
     void World::render(FirstPersonCamera const & camera) const
     {
         m_chunk_renderer->bind();
-        m_generation_config->bind(0);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
         m_chunk_renderer->setUniformMatrix4f("u_view", camera.getViewMatrix());
         m_chunk_renderer->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         m_chunk_renderer->setUniformVector3f("u_camera_position_W", camera.getPosition());
@@ -462,15 +453,16 @@ namespace eng
         {
             if (!chunk.isActive() || chunk.meshEmpty()) continue;
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
-            chunk.getVertexArray()->bind();
-            chunk.render();
+            glBindVertexArray(chunk.getVertexArray());
+            glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk.getDrawIndirectBuffer());
+            glDrawArraysIndirect(GL_TRIANGLES, nullptr);
         }
         if (m_triangle_hit)
         {
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::mat4(1.0f));
             m_chunk_renderer->setUniformVector3f("u_color", glm::vec3(1.0f, 0.0f, 0.0f));
-            m_hit_triangle_buffer->bind();
-            m_hit_triangle_buffer->drawElements();
+            glBindVertexArray(m_hit_triangle_va);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
         }
     }
 

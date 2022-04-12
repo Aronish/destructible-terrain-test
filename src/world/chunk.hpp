@@ -8,16 +8,14 @@
 #include "graphics/shader.hpp"
 #include "graphics/shader_storage_buffer.hpp"
 #include "graphics/vertex_array.hpp"
-#include "graphics/vertex_buffer.hpp"
 
 namespace eng
 {
     class Chunk
     {
     private:
-        std::shared_ptr<VertexArray> m_vertex_array;
-        std::shared_ptr<ShaderStorageBuffer> m_mesh;
-        std::shared_ptr<ShaderStorageBuffer> m_indirect_draw_buffer;
+        GLuint m_vertex_array;
+        GLuint m_mesh_vb, m_draw_indirect_buffer;
         bool m_mesh_empty = false, m_active = false;
         union
         {
@@ -26,12 +24,10 @@ namespace eng
         };
 
     public:
-        Chunk(GLuint max_index_buffer, int unsigned max_triangle_count);
+        Chunk(AssetManager & asset_manager, int unsigned max_triangle_count);
 
         void activate(glm::ivec2 position);
         void deactivate(Chunk * chunk);
-
-        void render() const;
 
         glm::ivec2 const & getPosition() const;
         Chunk * getNextUnused() const;
@@ -39,9 +35,9 @@ namespace eng
         bool meshEmpty() const;
         bool isActive() const;
 
-        std::shared_ptr<VertexArray> getVertexArray() const;
-        std::shared_ptr<ShaderStorageBuffer> getMesh() const;
-        std::shared_ptr<ShaderStorageBuffer> getIndirectDrawBuffer() const;
+        GLuint getVertexArray() const;
+        GLuint getMeshVB() const;
+        GLuint getDrawIndirectBuffer() const;
     };
 
     class ChunkPool
@@ -49,11 +45,13 @@ namespace eng
     private:
         std::vector<Chunk> m_chunks;
         Chunk * m_first_unused;
-        GLuint m_max_index_buffer; //Owned by World
         int unsigned m_max_triangle_count;
+
+        AssetManager & m_asset_manager;
     public:
-        void initialize(int unsigned initial_size, GLuint max_index_buffer, int unsigned max_triangle_count);
-        void setMeshConfig(GLuint max_index_buffer, int unsigned max_triangle_count);
+        ChunkPool(AssetManager & asset_manager);
+        void initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count);
+        void setMeshConfig(int unsigned max_triangle_count);
         void setPoolSize(int unsigned size);
         bool activateChunk(Chunk ** out_chunk, glm::ivec2 position);
         void deactivateChunk(Chunk * chunk);

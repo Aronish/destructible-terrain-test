@@ -17,7 +17,7 @@
 namespace eng
 {
     Application::Application(unsigned int width, unsigned int height, char const * title, bool maximized)
-        : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height)
+        : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height), m_world(m_asset_manager)
     {
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
@@ -49,9 +49,16 @@ namespace eng
             0.0f,               crosshair_height,   0.0f, 1.0f,
             crosshair_width,    crosshair_height,   1.0f, 1.0f
         };
-        m_crosshair_quad_buffer = std::make_shared<VertexBuffer>(quad_vertices, sizeof(quad_vertices), VertexDataLayout{{{ 2, GL_FLOAT }, { 2, GL_FLOAT }}});
-        m_crosshair = std::make_shared<VertexArray>(quad_indices, sizeof(quad_indices));
-        m_crosshair->setVertexData(m_crosshair_quad_buffer);
+
+        m_crosshair_ib = m_asset_manager.createBuffer();
+
+        m_crosshair_vb = m_asset_manager.createBuffer();
+        glBindBuffer(GL_ARRAY_BUFFER, m_crosshair_vb);
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, 0);
+
+        m_crosshair_va = m_asset_manager.createVertexArray();
+        VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
+        VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
         m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
         m_world.onRendererInit(m_asset_manager);
@@ -179,8 +186,8 @@ namespace eng
         m_textured_quad_shader->setUniformMatrix4f("u_model", glm::translate(glm::mat4(1.0f), glm::vec3(m_window.getWidth() / 2 - m_crosshair_texture->getWidth() / 2, m_window.getHeight() / 2 - m_crosshair_texture->getHeight() / 2, 0.0f)));
         m_textured_quad_shader->setUniformMatrix4f("u_projection", glm::ortho(0.0f, static_cast<float>(m_window.getWidth()), static_cast<float>(m_window.getHeight()), 0.0f));
         m_crosshair_texture->bind(0);
-        m_crosshair->bind();
-        m_crosshair->drawElements();
+        glBindVertexArray(m_crosshair_va);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(m_window.getWindowHandle());

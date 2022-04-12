@@ -50,8 +50,6 @@ void main()
     float t = f * dot(edge2, q);
     if (t > EPSILON && hit < 1.0f)
     {
-        //TODO: Fix, maybe need a better algorithm
-        /*
         hit_triangle = triangle;
         hit_triangle.x_1 = vertex0.x;
         hit_triangle.y_1 = vertex0.y + 0.001f;
@@ -64,17 +62,6 @@ void main()
         hit_triangle.x_3 = vertex2.x;
         hit_triangle.y_3 = vertex2.y + 0.001f;
         hit_triangle.z_3 = vertex2.z;
-        //position_and_hit = vec4(u_ray_origin + u_ray_direction * t, 1.0f);
-        */
-        UnpaddedTriangle hit_triangle_temp = UnpaddedTriangle(
-            vertex0.x, vertex0.y + 0.0001f, vertex0.z,
-            triangle.nx_1, triangle.ny_1, triangle.nz_1,
-            vertex1.x, vertex1.y + 0.0001f, vertex1.z,
-            triangle.nx_2, triangle.ny_2, triangle.nz_2,
-            vertex2.x, vertex2.y + 0.0001f, vertex2.z,
-            triangle.nx_3, triangle.ny_3, triangle.nz_3
-        );
-        hit_triangle = hit_triangle_temp;
         hit = 1.0f;
     }
 }

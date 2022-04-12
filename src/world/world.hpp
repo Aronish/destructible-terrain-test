@@ -8,10 +8,8 @@
 #include "event/key_event.hpp"
 #include "first_person_camera.hpp"
 #include "graphics/asset.hpp"
-#include "graphics/atomic_counter_buffer.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
-#include "graphics/vertex_buffer.hpp"
 #include "graphics/uniform_buffer.hpp"
 #include "world/chunk.hpp"
 
@@ -38,25 +36,23 @@ namespace eng
         float m_threshold{}, m_chunk_size_in_units = 1.0f;
 
         bool m_triangle_hit;
-        std::shared_ptr<VertexArray> m_hit_triangle_buffer;
 
-        std::shared_ptr<UniformBuffer> m_generation_config;
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;
         std::shared_ptr<Shader> m_chunk_renderer;
         std::shared_ptr<Shader> m_mesh_ray_intersect;
-        std::shared_ptr<ShaderStorageBuffer> m_isosurface;
-        std::shared_ptr<ShaderStorageBuffer> m_ray_hit_data;
-        std::shared_ptr<ShaderStorageBuffer> m_triangulation_table;
-
-        GLuint m_max_chunk_index_buffer;
+        GLuint m_generation_config_u;
+        GLuint m_triangulation_table_ss;
+        GLuint m_isosurface_ss;
+        GLuint m_ray_hit_data_ss;
+        GLuint m_hit_triangle_va;
 
         ChunkPool m_chunk_pool;
 
     public:
-        ~World();
+        World(AssetManager & asset_manager);
 
-        void onRendererInit(AssetManager const & asset_manager);
+        void onRendererInit(AssetManager & asset_manager);
 
         void onMousePressed(MousePressedEvent const & event, FirstPersonCamera const & camera);
 
@@ -64,7 +60,7 @@ namespace eng
 
         void onPlayerMoved(FirstPersonCamera const & camera);
 
-        void initDependentBuffers();
+        void initDynamicBuffers();
         
         void updateGenerationConfig(WorldGenerationConfig const config);
         
