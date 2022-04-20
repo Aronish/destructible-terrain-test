@@ -62,8 +62,6 @@ void main()
     }
     vec3 ambient = vec3(0.1f * steepness);
 */
-    float grid_x = int(floor(v_position_W.x)) % 2 == 0 ? 1.0f : 0.3f;
-    float grid_z = int(floor(v_position_W.z)) % 2 == 0 ? 0.3f : 1.0f;
-    vec3 specular = vec3(0.5f * grid_x * grid_z) * pow(max(dot(normal, half_way_direction), 0.0f), 32.0f);
+    vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 8.0f);
     o_color = vec4(u_color * diffuse_factor + specular, 1.0f);
 }

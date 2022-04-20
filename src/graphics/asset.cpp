@@ -5,8 +5,8 @@ namespace eng
 {
     AssetManager::~AssetManager()
     {
-        glDeleteBuffers(m_buffers.size(), m_buffers.data());
-        glDeleteVertexArrays(m_vertex_arrays.size(), m_vertex_arrays.data());
+        glDeleteBuffers(static_cast<GLsizei>(m_buffers.size()), m_buffers.data());
+        glDeleteVertexArrays(static_cast<GLsizei>(m_vertex_arrays.size()), m_vertex_arrays.data());
     }
 
     std::shared_ptr<Shader> & AssetManager::getShader(char const * key)
