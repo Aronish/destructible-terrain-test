@@ -22,7 +22,7 @@ namespace eng
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.42f, 0.71f, 0.73f, 1.0f);
-        //glEnable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -208,8 +208,8 @@ namespace eng
 
             if (time > 1.0)
             {
-                char frame_data[25];
-                sprintf_s(frame_data, sizeof(frame_data), "FPS: %d, UPS: %d", frames, updates);
+                char frame_data[60];
+                sprintf_s(frame_data, sizeof(frame_data), "FPS: %d, UPS: %d, Frametime: %f ms", frames, updates, frame_time * 1000.0);
                 m_window.setTitle(frame_data);
                 frames = 0;
                 updates = 0;

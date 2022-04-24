@@ -24,6 +24,7 @@ namespace eng
 
     public:
         Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
 
         void activate(glm::ivec2 position);
         void deactivate(Chunk * chunk);

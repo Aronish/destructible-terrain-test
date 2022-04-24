@@ -110,6 +110,7 @@ void main()
             vertexC.x, vertexC.y, vertexC.z, normal.x, normal.y, normal.z
         );
         triangles[atomicAdd(triangle_count, 1)] = triangle;
-        atomicAdd(index_count, 3);
+        //atomicAdd(index_count, 3);
+        index_count = (u_points_per_axis - 1) * (u_points_per_axis - 1) * (u_points_per_axis - 1) * 5 * 3;
     }
 }

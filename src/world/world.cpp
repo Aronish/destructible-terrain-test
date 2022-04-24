@@ -1,5 +1,4 @@
 #include <chrono>
-#include <iostream>
 #include <cmath>
 
 #include "world/world.hpp"
@@ -353,14 +352,14 @@ namespace eng
             glm::vec2 dir_2d = glm::normalize(glm::vec2{ camera.getDirection().x, camera.getDirection().z });
             int dx = sign(dir_2d.x), dz = sign(dir_2d.y);
 
-            float t_delta_x = 0.0f, t_max_x = 0.0f;
-            if (dx != 0) t_delta_x = std::fmin(dx / dir_2d.x, 10'000'000.0f); else t_delta_x = 10'000'000.0f;
-            if (dx > 0) t_max_x = t_delta_x * (1 - camera.getPosition().x + std::floorf(camera.getPosition().x)); else t_max_x = t_delta_x * (camera.getPosition().x - std::floorf(camera.getPosition().x));
+            float t_delta_x = 0.0f, t_max_x = 0.0f, adjusted_position_x = camera.getPosition().x / m_chunk_size_in_units;
+            if (dx != 0) t_delta_x = std::fmin(m_chunk_size_in_units * dx / dir_2d.x, 10'000'000.0f); else t_delta_x = 10'000'000.0f;
+            if (dx > 0) t_max_x = t_delta_x * (1 - adjusted_position_x + std::floorf(adjusted_position_x)); else t_max_x = t_delta_x * (adjusted_position_x - std::floorf(adjusted_position_x));
             int x = m_last_chunk_coords.x;
 
-            float t_delta_z = 0.0f, t_max_z = 0.0f;
-            if (dz != 0) t_delta_z = std::fmin(dz / dir_2d.y, 10'000'000.0f); else t_delta_z = 10'000'000.0f;
-            if (dz > 0) t_max_z = t_delta_z * (1 - camera.getPosition().z + std::floorf(camera.getPosition().z)); else t_max_z = t_delta_z * (camera.getPosition().z - std::floorf(camera.getPosition().z));
+            float t_delta_z = 0.0f, t_max_z = 0.0f, adjusted_position_z = camera.getPosition().z / m_chunk_size_in_units;
+            if (dz != 0) t_delta_z = std::fmin(m_chunk_size_in_units * dz / dir_2d.y, 10'000'000.0f); else t_delta_z = 10'000'000.0f;
+            if (dz > 0) t_max_z = t_delta_z * (1 - adjusted_position_z + std::floorf(adjusted_position_z)); else t_max_z = t_delta_z * (adjusted_position_z - std::floorf(adjusted_position_z));
             int z = m_last_chunk_coords.y;
 
             float initial_hit_data[19] = {};
@@ -400,7 +399,6 @@ namespace eng
         if (m_last_chunk_coords != chunk_coords)
         {
             m_last_chunk_coords = chunk_coords;
-            ENG_LOG_F("Cam chunk coord: x: %d, z: %d", m_last_chunk_coords.x, m_last_chunk_coords.y);
             generateChunks();
         }
     }
@@ -456,17 +454,16 @@ namespace eng
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
                     // Run marching cubes
-                    int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-                    glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk->getDrawIndirectBuffer());
-                    glBufferSubData(GL_DRAW_INDIRECT_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
                     m_marching_cubes->bind();
                     m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
                     m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getMeshVB());
-                    glClearBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_R32F, 0, m_max_triangle_count * sizeof(float) * 18, GL_R32F, GL_FLOAT, nullptr);
+                    glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, chunk->getDrawIndirectBuffer());
+                    int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
+                    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
                     m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
-                    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
+                    glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
             }
         }
