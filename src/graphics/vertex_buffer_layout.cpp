@@ -4,7 +4,7 @@
 
 namespace eng
 {
-    static constexpr unsigned int GLTypeToSize(GLenum type)
+    static constexpr GLuint GLTypeToSize(GLenum type)
     {
         switch (type)
         {

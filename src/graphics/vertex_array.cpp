@@ -2,18 +2,26 @@
 
 namespace eng::VertexArray
 {
-    void associateVertexBuffer(GLuint vertex_array, GLuint vertex_buffer, VertexDataLayout const & layout)
+    void setVertexArrayFormat(GLuint vertex_array, VertexDataLayout const & layout)
     {
-        glBindVertexArray(vertex_array);
-        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-        int attrib_index = 0;
-        for (auto const & element : layout)
+        for (int attrib_index = 0; auto const & element : layout)
         {
-            glEnableVertexAttribArray(attrib_index);
-            glVertexAttribPointer(attrib_index, element.m_size, element.m_type, GL_FALSE, layout.getStride(), reinterpret_cast<void const *>(element.m_offset));
+            glEnableVertexArrayAttrib(vertex_array, attrib_index);
+            glVertexArrayAttribFormat(vertex_array, attrib_index, element.m_size, element.m_type, GL_FALSE, element.m_offset);
+            glVertexArrayAttribBinding(vertex_array, attrib_index, 0);
             ++attrib_index;
         }
-        glBindVertexArray(0);
+    }
+
+    void bindVertexBuffer(GLuint vertex_array, GLuint vertex_buffer, VertexDataLayout const & layout)
+    {
+        glVertexArrayVertexBuffer(vertex_array, 0, vertex_buffer, 0, layout.getStride());
+    }
+
+    void associateVertexBuffer(GLuint vertex_array, GLuint vertex_buffer, VertexDataLayout const & layout)
+    {
+        setVertexArrayFormat(vertex_array, layout);
+        bindVertexBuffer(vertex_array, vertex_buffer, layout);
     }
 
     void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer, int * indices, size_t indices_size)

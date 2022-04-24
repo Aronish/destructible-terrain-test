@@ -30,22 +30,22 @@ namespace eng
     private:
         int unsigned static constexpr WORK_GROUP_SIZE = 10;
     private:
-        int m_points_per_axis = 8, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 4;
+        int m_points_per_axis = 8, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         glm::ivec2 m_last_chunk_coords{};
         int m_render_distance = 4;
         float m_threshold{}, m_chunk_size_in_units = 1.0f;
-
-        bool m_triangle_hit;
 
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;
         std::shared_ptr<Shader> m_chunk_renderer;
         std::shared_ptr<Shader> m_mesh_ray_intersect;
+        std::shared_ptr<Shader> ray_mesh_command;
         GLuint m_generation_config_u;
         GLuint m_triangulation_table_ss;
-        GLuint m_isosurface_ss;
         GLuint m_ray_hit_data_ss;
         GLuint m_hit_triangle_va;
+        GLuint m_chunk_va;
+        GLuint m_dispatch_indirect_buffer;
 
         ChunkPool m_chunk_pool;
 
@@ -53,6 +53,8 @@ namespace eng
         World(AssetManager & asset_manager);
 
         void onRendererInit(AssetManager & asset_manager);
+
+        void chunkRayIntersection(glm::ivec2 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
 
         void onMousePressed(MousePressedEvent const & event, FirstPersonCamera const & camera);
 
@@ -72,7 +74,7 @@ namespace eng
 
         void generateChunks();
 
-        void render(FirstPersonCamera const & camera) const;
+        void render(FirstPersonCamera const & camera);
 
         int unsigned getPointsPerAxis();
     };

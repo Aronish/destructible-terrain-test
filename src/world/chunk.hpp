@@ -14,9 +14,8 @@ namespace eng
     class Chunk
     {
     private:
-        GLuint m_vertex_array;
-        GLuint m_mesh_vb, m_draw_indirect_buffer;
-        bool m_mesh_empty = false, m_active = false;
+        GLuint m_mesh_vb, m_density_distribution_ss, m_draw_indirect_buffer;
+        bool m_active = false, m_shit = false;
         union
         {
             glm::ivec2 m_position;
@@ -24,7 +23,7 @@ namespace eng
         };
 
     public:
-        Chunk(AssetManager & asset_manager, int unsigned max_triangle_count);
+        Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
 
         void activate(glm::ivec2 position);
         void deactivate(Chunk * chunk);
@@ -32,11 +31,13 @@ namespace eng
         glm::ivec2 const & getPosition() const;
         Chunk * getNextUnused() const;
 
-        bool meshEmpty() const;
         bool isActive() const;
 
-        GLuint getVertexArray() const;
+        void setShit(bool shit);
+        bool isShit() const;
+
         GLuint getMeshVB() const;
+        GLuint getDensityDistributionBuffer() const;
         GLuint getDrawIndirectBuffer() const;
     };
 
@@ -45,13 +46,13 @@ namespace eng
     private:
         std::vector<Chunk> m_chunks;
         Chunk * m_first_unused;
-        int unsigned m_max_triangle_count;
+        int unsigned m_max_triangle_count, m_points_per_chunk_axis;
 
         AssetManager & m_asset_manager;
     public:
         ChunkPool(AssetManager & asset_manager);
-        void initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count);
-        void setMeshConfig(int unsigned max_triangle_count);
+        void initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setPoolSize(int unsigned size);
         bool activateChunk(Chunk ** out_chunk, glm::ivec2 position);
         void deactivateChunk(Chunk * chunk);

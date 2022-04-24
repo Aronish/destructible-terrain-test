@@ -9,13 +9,16 @@
 
 namespace eng
 {
-    Chunk::Chunk(AssetManager & asset_manager, int unsigned max_triangle_count)
+    Chunk::Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
     {
         m_mesh_vb = asset_manager.createBuffer();
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_mesh_vb);
         glBufferStorage(GL_SHADER_STORAGE_BUFFER, max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_STORAGE_BIT);
-        m_vertex_array = asset_manager.createVertexArray();
-        VertexArray::associateVertexBuffer(m_vertex_array, m_mesh_vb, VertexDataLayout::POSITION_NORMAL_3F);
+
+        m_density_distribution_ss = asset_manager.createBuffer();
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_density_distribution_ss);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
+        //Make this shit settable and fuck
 
         int unsigned constexpr initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
         m_draw_indirect_buffer = asset_manager.createBuffer();
@@ -23,6 +26,16 @@ namespace eng
         glBufferStorage(GL_DRAW_INDIRECT_BUFFER, sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
         m_next_unused = nullptr;
+    }
+    
+    void Chunk::setShit(bool shit)
+    {
+        m_shit = shit;
+    }
+
+    bool Chunk::isShit() const
+    {
+        return m_shit;
     }
 
     void Chunk::activate(glm::ivec2 position)
@@ -41,25 +54,20 @@ namespace eng
     {
         return m_active ? nullptr : m_next_unused;
     }
-
-    bool Chunk::meshEmpty() const
-    {
-        return m_mesh_empty;
-    }
-
+    
     bool Chunk::isActive() const
     {
         return m_active;
     }
 
-    GLuint Chunk::getVertexArray() const
-    {
-        return m_vertex_array;
-    }
-
     GLuint Chunk::getMeshVB() const
     {
         return m_mesh_vb;
+    }
+
+    GLuint Chunk::getDensityDistributionBuffer() const
+    {
+        return m_density_distribution_ss;
     }
 
     GLuint Chunk::getDrawIndirectBuffer() const
@@ -78,16 +86,17 @@ namespace eng
     {
     }
 
-    void ChunkPool::initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count)
+    void ChunkPool::initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
     {
         m_asset_manager = asset_manager;
-        setMeshConfig(max_triangle_count);
+        setMeshConfig(max_triangle_count, points_per_chunk_axis);
         setPoolSize(initial_size);
     }
 
-    void ChunkPool::setMeshConfig(int unsigned max_triangle_count)
+    void ChunkPool::setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
     {
         m_max_triangle_count = max_triangle_count;
+        m_points_per_chunk_axis = points_per_chunk_axis;
     }
 
     void ChunkPool::setPoolSize(int unsigned size)
@@ -97,7 +106,7 @@ namespace eng
         // Allocate all chunks and setup free list
         for (int unsigned i = 0; i < size; ++i)
         {
-            Chunk & chunk = m_chunks.emplace_back(m_asset_manager, m_max_triangle_count * 3);
+            Chunk & chunk = m_chunks.emplace_back(m_asset_manager, m_max_triangle_count * 3, m_points_per_chunk_axis);
             if (i > 0) m_chunks[i - 1].deactivate(&chunk);
         }
         m_first_unused = &m_chunks[0];

@@ -34,6 +34,7 @@ layout (local_size_x = MAX_INVOCATIONS, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
     UnpaddedTriangle triangle = triangles[gl_GlobalInvocationID.x];
+    //if (dot(vec3(triangle.nx_1, triangle.ny_1, triangle.nz_1), u_ray_direction) > 0.0f) return;
     vec3 vertex0 = vec3(u_transform * vec4(triangle.x_1, triangle.y_1, triangle.z_1, 1.0f));
     vec3 vertex1 = vec3(u_transform * vec4(triangle.x_2, triangle.y_2, triangle.z_2, 1.0f));
     vec3 vertex2 = vec3(u_transform * vec4(triangle.x_3, triangle.y_3, triangle.z_3, 1.0f));

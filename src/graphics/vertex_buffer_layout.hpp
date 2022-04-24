@@ -9,8 +9,8 @@ namespace eng
     struct VertexDataElement
     {
     public:
-        unsigned int m_size, m_type_size;
-        unsigned long long int m_offset;
+        GLuint m_size, m_type_size;
+        GLuint m_offset;
         GLenum m_type;
     public:
         VertexDataElement(unsigned int size, GLenum type);
