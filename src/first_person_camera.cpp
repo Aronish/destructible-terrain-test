@@ -98,6 +98,6 @@ namespace eng
 
     void FirstPersonCamera::calculateProjectionMatrix()
     {
-        m_projection_matrix = glm::perspective(m_fov, m_aspect_ratio, 0.1f, 100.0f);
+        m_projection_matrix = glm::perspective(m_fov, m_aspect_ratio, 0.1f, 1000.0f);
     }
 }

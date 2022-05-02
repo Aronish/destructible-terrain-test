@@ -161,10 +161,10 @@ void main()
           z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(cube_volumes)) / u_resolution;
 
     float noise2d = u_amplitude_2d * pow(layeredNoise(vec2(x, z), u_octaves_2d, u_frequency_2d, u_lacunarity_2d, u_persistence_2d) * 0.5f + 0.5f, u_exponent_2d);
-    float ridge_test = u_amplitude_3d * pow(-abs(layeredNoise(vec2(x + 58931.4f, z -358.9f), u_octaves_3d, u_frequency_3d, u_lacunarity_3d, u_persistence_3d)) + 1.0f, u_exponent_3d);
+    //float ridge_test = u_amplitude_3d * pow(-abs(layeredNoise(vec2(x + 58931.4f, z -358.9f), u_octaves_3d, u_frequency_3d, u_lacunarity_3d, u_persistence_3d)) + 1.0f, u_exponent_3d);
     //float noise3d = u_amplitude_3d * pow(layeredNoise(vec3(x, y, z)) * 0.5f + 0.5f, u_exponent_3d);
 
-    float final_height = noise2d * ridge_test;
+    float final_height = noise2d;
     float final_density = y - final_height;
     //if (final_density < u_water_level) final_density = u_water_level;
     

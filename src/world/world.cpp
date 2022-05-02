@@ -366,7 +366,7 @@ namespace eng
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ray_hit_data_ss);
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_hit_data), initial_hit_data);
 
-            while (std::abs(x - m_last_chunk_coords.x) <= m_render_distance && std::abs(z - m_last_chunk_coords.y) <= m_render_distance)
+            while (std::abs(x - m_last_chunk_coords.x) <= 1 && std::abs(z - m_last_chunk_coords.y) <= 1)
             {
                 chunkRayIntersection(glm::ivec2{x, z}, camera.getPosition(), camera.getDirection());
                 if (t_max_x < t_max_z)
