@@ -28,7 +28,6 @@ in vec3 v_normal_W;
 
 uniform vec3 u_camera_position_W;
 uniform vec3 u_color = vec3(0.22f, 0.42f, 0.046f);
-uniform float u_shit;
 
 layout (std140, binding = 0) uniform WorldGenerationConfig
 {
@@ -64,5 +63,5 @@ void main()
     vec3 ambient = vec3(0.1f * steepness);
 */
     vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 8.0f);
-    o_color = vec4(u_color * diffuse_factor * u_shit + specular, 1.0f);
+    o_color = vec4(vec3(0.1f) + u_color * diffuse_factor + specular, 1.0f);
 }

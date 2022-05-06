@@ -1,6 +1,5 @@
-#include "logger.hpp"
-
 #include "graphics/vertex_buffer_layout.hpp"
+#include "logger.hpp"
 #include "world/world.hpp"
 
 #include "world/chunk.hpp"

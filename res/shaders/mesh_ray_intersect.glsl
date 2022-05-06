@@ -21,10 +21,11 @@ layout (std430, binding = 0) buffer Mesh
 layout (std430, binding = 1) buffer RayHitData
 {
     UnpaddedTriangle hit_triangle;
-    float hit;
+    float hit, chunk_x, chunk_z;
 };
 
 uniform mat4 u_transform;
+uniform vec2 u_chunk_coordinate;
 uniform vec3 u_ray_origin;
 uniform vec3 u_ray_direction;
 const float EPSILON = 0.0000001;
@@ -51,17 +52,8 @@ void main()
     if (t > EPSILON && hit < 1.0f)
     {
         hit_triangle = triangle;
-        hit_triangle.x_1 = vertex0.x;
-        hit_triangle.y_1 = vertex0.y + 0.001f;
-        hit_triangle.z_1 = vertex0.z;
-
-        hit_triangle.x_2 = vertex1.x;
-        hit_triangle.y_2 = vertex1.y + 0.001f;
-        hit_triangle.z_2 = vertex1.z;
-
-        hit_triangle.x_3 = vertex2.x;
-        hit_triangle.y_3 = vertex2.y + 0.001f;
-        hit_triangle.z_3 = vertex2.z;
         hit = 1.0f;
+        chunk_x = float(u_chunk_coordinate.x);
+        chunk_z = float(u_chunk_coordinate.y);
     }
 }

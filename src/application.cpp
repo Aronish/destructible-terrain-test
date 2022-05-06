@@ -87,7 +87,15 @@ namespace eng
         });
         EventDispatcher::dispatch<MousePressedEvent>(event, [&](MousePressedEvent const & event)
         {
-            m_world.onMousePressed(event, m_camera);
+            switch (event.m_button_code)
+            {
+                case GLFW_MOUSE_BUTTON_LEFT:
+                    m_world.m_create_destroy_multiplier = -1.0f;
+                    break;
+                case GLFW_MOUSE_BUTTON_RIGHT:
+                    m_world.m_create_destroy_multiplier = 1.0f;
+                    break;
+            }
         });
     }
 
@@ -98,6 +106,7 @@ namespace eng
         {
             m_world.onPlayerMoved(m_camera);
         }
+        m_world.update(m_window, m_camera);
     }
 
     WorldGenerationConfig static config;
@@ -119,7 +128,8 @@ namespace eng
 
             values_changed |= ImGui::DragFloat("Chunk Size", &m_world.m_chunk_size_in_units, 0.1f, 0.0f, FLT_MAX);
             values_changed |= ImGui::DragFloat("Threshold", &m_world.m_threshold, 0.05f);
-            values_changed |= ImGui::DragFloat("Water Level", &config.m_water_level, 0.01f, 0.0f);
+            ImGui::DragFloat("Terraform Radius", &m_world.m_terraform_radius, 0.01f, 0.0f, 10.0f);
+            ImGui::DragFloat("Terraform Strength", &m_world.m_terraform_strength, 0.01f, 0.0f, 100.0f);
 
             if (values_changed |= ImGui::InputInt("Points/Chunk Axis", &m_world.m_points_per_axis, 1, 1))
             {

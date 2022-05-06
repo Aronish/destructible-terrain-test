@@ -179,6 +179,19 @@ namespace eng
         glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
     }
 
+    void Shader::setUniformVector2f(char const * name, glm::vec2 const & data)
+    {
+#if ENG_DEBUG
+        if (m_uniform_locations.find(name) == m_uniform_locations.end())
+        {
+            ENG_LOG_F("Vector2f uniform with name %s does not exist!", name);
+            return;
+        }
+#endif
+        GLuint location = m_uniform_locations[name];
+        glUniform2f(location, data.x, data.y);
+    }
+
     void Shader::setUniformVector3f(char const * name, glm::vec3 const & data)
     {
 #if ENG_DEBUG
@@ -210,7 +223,7 @@ namespace eng
 #ifdef ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-            ENG_LOG_F("Float uniform with name %s does not exist!", name);
+            ENG_LOG_F("Int uniform with name %s does not exist!", name);
             return;
         }
 #endif
