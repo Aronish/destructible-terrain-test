@@ -21,7 +21,7 @@ void main()
 #shader frag
 #version 460 core
 
-const vec3 light_direction = vec3(0.0f, -1.0f, 0.0f);
+const vec3 light_direction = vec3(1.0f, -1.0f, 0.0f);
 
 in vec3 v_position_W;
 in vec3 v_normal_W;
@@ -62,5 +62,5 @@ void main()
     }
     vec3 ambient = vec3(0.1f * steepness + 0.01f);
     vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 8.0f);
-    o_color = vec4(ambient + diffuse + specular, 1.0f);
+    o_color = vec4(ambient + diffuse * vec3(0.9f, 1.0f, 0.8f) + specular, 1.0f);
 }

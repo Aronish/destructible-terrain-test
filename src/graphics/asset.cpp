@@ -1,5 +1,6 @@
-#include "graphics/asset.hpp"
 #include "logger.hpp"
+
+#include "graphics/asset.hpp"
 
 namespace eng
 {

@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "graphics/shader.hpp"
-#include "graphics/shader_storage_buffer.hpp"
 #include "graphics/texture.hpp"
 
 namespace eng

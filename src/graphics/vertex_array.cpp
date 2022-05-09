@@ -27,8 +27,7 @@ namespace eng::VertexArray
     void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer, int * indices, size_t indices_size)
     {
         glBindVertexArray(vertex_array);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, GL_STATIC_DRAW);
+        glNamedBufferStorage(index_buffer, indices_size, indices, 0);
         glBindVertexArray(0);
     }
 }

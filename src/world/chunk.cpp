@@ -14,31 +14,15 @@ namespace eng
 
         int unsigned constexpr initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
         m_draw_indirect_buffer = asset_manager.createBuffer();
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_draw_indirect_buffer);
-        glBufferStorage(GL_DRAW_INDIRECT_BUFFER, sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
+        glNamedBufferStorage(m_draw_indirect_buffer, sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
         m_next_unused = nullptr;
     }
     
     void Chunk::setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
     {
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_mesh_vb);
-        //glBufferData(GL_SHADER_STORAGE_BUFFER, max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_COPY);
         glNamedBufferData(m_mesh_vb, max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_COPY);
-        
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_density_distribution_ss);
-        //glBufferData(GL_SHADER_STORAGE_BUFFER, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
         glNamedBufferData(m_density_distribution_ss, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
-    }
-
-    void Chunk::setShit(bool shit)
-    {
-        m_shit = shit;
-    }
-
-    bool Chunk::isShit() const
-    {
-        return m_shit;
     }
 
     void Chunk::activate(glm::ivec2 position)

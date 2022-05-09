@@ -97,6 +97,11 @@ namespace eng
                     break;
             }
         });
+        EventDispatcher::dispatch<MouseScrolledEvent>(event, [&](MouseScrolledEvent const & event)
+        {
+            if (event.m_y_offset > 0) m_world.m_terraform_strength += 0.05f;
+            else m_world.m_terraform_strength -= 0.05f;
+        });
     }
 
     void Application::update(float delta_time)

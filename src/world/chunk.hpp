@@ -6,7 +6,6 @@
 
 #include "first_person_camera.hpp"
 #include "graphics/shader.hpp"
-#include "graphics/shader_storage_buffer.hpp"
 #include "graphics/vertex_array.hpp"
 
 namespace eng
@@ -33,9 +32,6 @@ namespace eng
         Chunk * getNextUnused() const;
 
         bool isActive() const;
-
-        void setShit(bool shit);
-        bool isShit() const;
 
         GLuint getMeshVB() const;
         GLuint getDensityDistributionBuffer() const;

@@ -276,13 +276,6 @@ namespace eng
             { 0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 },
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
         };
-        m_generation_config_u = asset_manager.createBuffer();
-        glBindBuffer(GL_UNIFORM_BUFFER, m_generation_config_u);
-        glBufferStorage(GL_UNIFORM_BUFFER, sizeof(WorldGenerationConfig), nullptr, GL_DYNAMIC_STORAGE_BIT);
-
-        m_triangulation_table_ss = asset_manager.createBuffer();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_triangulation_table_ss);
-        glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(tri_table), tri_table, 0);
 
         m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
         m_marching_cubes = asset_manager.getShader("res/shaders/marching_cubes.glsl");
@@ -291,22 +284,21 @@ namespace eng
         m_ray_mesh_command = asset_manager.getShader("res/shaders/ray_mesh_command.glsl");
         m_terraform = asset_manager.getShader("res/shaders/terraform.glsl");
 
+        m_generation_config_u = asset_manager.createBuffer();
+        glNamedBufferStorage(m_generation_config_u, sizeof(WorldGenerationConfig), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        m_triangulation_table_ss = asset_manager.createBuffer();
+        glNamedBufferStorage(m_triangulation_table_ss, sizeof(tri_table), tri_table, 0);
+
         m_ray_hit_data_ss = asset_manager.createBuffer();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ray_hit_data_ss);
-        glBufferStorage(GL_SHADER_STORAGE_BUFFER, sizeof(float) * 21, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-        m_hit_info_ptr = reinterpret_cast<float *>(glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * 21, GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT));
-
-        m_hit_triangle_va = asset_manager.createVertexArray();
-        VertexArray::associateVertexBuffer(m_hit_triangle_va, m_ray_hit_data_ss, VertexDataLayout::POSITION_NORMAL_3F);
-
-        ENG_LOG_F("hit triangle buffer: %d", m_ray_hit_data_ss);
+        glNamedBufferStorage(m_ray_hit_data_ss, sizeof(float) * RAY_HIT_DATA_SIZE, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+        m_hit_info_ptr = reinterpret_cast<float *>(glMapNamedBufferRange(m_ray_hit_data_ss, 0, sizeof(float) * RAY_HIT_DATA_SIZE, GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT));
 
         m_chunk_va = asset_manager.createVertexArray();
         VertexArray::setVertexArrayFormat(m_chunk_va, VertexDataLayout::POSITION_NORMAL_3F);
 
         m_dispatch_indirect_buffer = asset_manager.createBuffer();
-        glBindBuffer(GL_DISPATCH_INDIRECT_BUFFER, m_dispatch_indirect_buffer);
-        glBufferStorage(GL_DISPATCH_INDIRECT_BUFFER, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(m_dispatch_indirect_buffer, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
         m_chunk_pool.initialize(asset_manager, (2 * m_render_distance + 1) * (2 * m_render_distance + 1), m_max_triangle_count, m_points_per_axis);
 
@@ -334,8 +326,9 @@ namespace eng
         if (dz > 0) t_max_z = t_delta_z * (1 - adjusted_position_z + std::floorf(adjusted_position_z)); else t_max_z = t_delta_z * (adjusted_position_z - std::floorf(adjusted_position_z));
         int z = m_last_chunk_coords.y;
 
-        for (int i = 0; i < 21; ++i) m_hit_info_ptr[i] = 0; // Reset hit info
-        while (std::abs(x - m_last_chunk_coords.x) <= 1 && std::abs(z - m_last_chunk_coords.y) <= 1)
+        for (int i = 0; i < RAY_HIT_DATA_SIZE; ++i) m_hit_info_ptr[i] = 0; // Reset hit info
+        int const raycast_reach = 4;
+        while (std::abs(x - m_last_chunk_coords.x) <= raycast_reach && std::abs(z - m_last_chunk_coords.y) <= raycast_reach)
         {
             chunkRayIntersection(glm::ivec2{x, z}, camera.getPosition(), camera.getDirection());
             if (t_max_x < t_max_z)
@@ -349,10 +342,8 @@ namespace eng
                 z += dz;
             }
         }
-#ifdef SYNC
         m_raycast_readback_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         glFlush();
-#endif
         m_raycast_active = true;
     }
 
@@ -387,6 +378,7 @@ namespace eng
         if (event.m_key_code == GLFW_KEY_R)
         {
             m_density_generator->compile("res/shaders/generate_points.glsl");
+            m_chunk_renderer->compile("res/shaders/light_test.glsl");
         }
     }
 
@@ -419,7 +411,7 @@ namespace eng
                 m_chunk_pool.deactivateChunk(&chunk);
             }
         }
-        
+
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
         for (int x_i = -m_render_distance; x_i <= m_render_distance; ++x_i)
@@ -450,7 +442,7 @@ namespace eng
                     glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
                     int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-                    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
+                    glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), initial_indirect_config);
                     if (has_neighbors & 1)
                     {
                         std::vector<Chunk>::iterator neighbor_x;
@@ -483,7 +475,7 @@ namespace eng
         {
             m_terraform->bind();
             m_terraform->setUniformInt("u_points_per_axis", m_points_per_axis);
-            m_terraform->setUniformFloat("u_strength", m_terraform_strength);
+            m_terraform->setUniformFloat("u_strength", m_terraform_strength * m_create_destroy_multiplier);
             m_terraform->setUniformFloat("u_radius", m_terraform_radius);
             m_terraform->setUniformVector2f("u_current_chunk", static_cast<glm::vec2>(position));
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getDensityDistributionBuffer());
@@ -509,7 +501,7 @@ namespace eng
             glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
             int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
+            glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), initial_indirect_config);
             if (has_neighbors & 1) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, neighbor_x->getDensityDistributionBuffer());
             if (has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, neighbor_z->getDensityDistributionBuffer());
             if (has_neighbors & 1 && has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, neighbor_xz->getDensityDistributionBuffer());
@@ -533,12 +525,10 @@ namespace eng
     {
         if (m_raycast_active)
         {
-#ifdef SYNC
             GLint result[1];
             glGetSynciv(m_raycast_readback_sync, GL_SYNC_STATUS, sizeof(result), nullptr, result);
             if (result[0] == GL_SIGNALED)
             {
-#endif
                 m_raycast_active = false;
                 if (m_hit_info_ptr[18])
                 {
@@ -552,12 +542,10 @@ namespace eng
                     }
                 }
                 glDeleteSync(m_raycast_readback_sync);
-#ifdef SYNC
             }
-#endif
         } else
         {
-            if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS)
+            if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
             {
                 castRay(camera);
             }
@@ -575,7 +563,7 @@ namespace eng
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive()) continue;
-            m_chunk_renderer->setUniformFloat("u_points_per_axis", m_points_per_axis);
+            m_chunk_renderer->setUniformFloat("u_points_per_axis", static_cast<float>(m_points_per_axis));
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
             VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::POSITION_NORMAL_3F);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk.getDrawIndirectBuffer());
@@ -583,10 +571,9 @@ namespace eng
         }
     }
     
-    void World::updateGenerationConfig(WorldGenerationConfig const config)
+    void World::updateGenerationConfig(WorldGenerationConfig const & config)
     {
-        glBindBuffer(GL_UNIFORM_BUFFER, m_generation_config_u);
-        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(WorldGenerationConfig), &config);
+        glNamedBufferSubData(m_generation_config_u, 0, sizeof(WorldGenerationConfig), &config);
     }
 
     void World::setRenderDistance(int unsigned render_distance)

@@ -4,7 +4,6 @@
 
 #include <glad/glad.h>
 
-#include "shader_storage_buffer.hpp"
 #include "vertex_buffer_layout.hpp"
 
 namespace eng::VertexArray

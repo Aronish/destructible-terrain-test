@@ -10,7 +10,6 @@
 #include "graphics/asset.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
-#include "graphics/uniform_buffer.hpp"
 #include "world/chunk.hpp"
 
 namespace eng
@@ -28,7 +27,7 @@ namespace eng
         friend class Chunk;
         friend class Application; //For Debug UI
     private:
-        int unsigned static constexpr WORK_GROUP_SIZE = 10;
+        int unsigned static constexpr WORK_GROUP_SIZE = 10, RAY_HIT_DATA_SIZE = 21;
     private:
         int m_points_per_axis = 16, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         glm::ivec2 m_last_chunk_coords{};
@@ -44,17 +43,14 @@ namespace eng
         GLuint m_generation_config_u;
         GLuint m_triangulation_table_ss;
         GLuint m_ray_hit_data_ss;
-        GLuint m_hit_triangle_va;
         GLuint m_chunk_va;
         GLuint m_dispatch_indirect_buffer;
 
         float * m_hit_info_ptr;
         bool m_raycast_active{};
-        ChunkPool m_chunk_pool;
-#define SYNC
-#ifdef SYNC
         GLsync m_raycast_readback_sync;
-#endif
+
+        ChunkPool m_chunk_pool;
 
     public:
         World(AssetManager & asset_manager);
@@ -75,7 +71,7 @@ namespace eng
         void update(Window const & window, FirstPersonCamera const & camera);
         void render(FirstPersonCamera const & camera);
         
-        void updateGenerationConfig(WorldGenerationConfig const config);
+        void updateGenerationConfig(WorldGenerationConfig const & config);
         
         void setRenderDistance(int unsigned render_distance);
 
