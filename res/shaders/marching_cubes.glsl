@@ -14,11 +14,7 @@ const int cornerIndexBFromEdge[12] =
 };
 
 uniform int u_points_per_axis;
-
-uint indexFromCoord(uint x, uint y, uint z)
-{
-    return z * u_points_per_axis * u_points_per_axis + y * u_points_per_axis + x;
-}
+uniform float u_threshold = 0.0f;
 
 struct UnpaddedTriangle
 {
@@ -50,7 +46,10 @@ layout (binding = 4) buffer IndirectDrawConfig
     uint index_count, prim_count, first_index, base_vertex, base_instance, triangle_count;
 };
 
-uniform float u_threshold = 0.0f;
+uint indexFromCoord(uint x, uint y, uint z)
+{
+    return z * u_points_per_axis * u_points_per_axis + y * u_points_per_axis + x;
+}
 
 vec3 interpolateVertices(vec4 v1, vec4 v2)
 {
@@ -62,8 +61,8 @@ layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_si
 
 void main()
 {
-    int cube_volumes = u_points_per_axis - 1;
-    if (gl_GlobalInvocationID.x >= cube_volumes || gl_GlobalInvocationID.y >= cube_volumes || gl_GlobalInvocationID.z >= cube_volumes) return;
+    int cube_volumes = u_points_per_axis - 1; // ppa is a count, can't be used as index
+    if (gl_GlobalInvocationID.x >= cube_volumes || gl_GlobalInvocationID.y >= cube_volumes || gl_GlobalInvocationID.z >= cube_volumes) return; // however there's one less cube volume per axis
 
     float step_size = 1.0f / float(cube_volumes);
     vec3 scaled_coordinate = vec3(gl_GlobalInvocationID) * step_size;

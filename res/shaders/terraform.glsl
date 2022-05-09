@@ -25,25 +25,26 @@ layout (std430, binding = 1) buffer RayHitData
 };
 
 uniform int u_points_per_axis;
-uniform float u_strength;
 uniform float u_radius;
-uniform float u_create_destroy_multiplier;
+uniform float u_threshold;
+uniform vec2 u_current_chunk;
 
 layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
 
 void main()
 {
-    int cube_volumes = u_points_per_axis - 1;
-    if (gl_GlobalInvocationID.x > cube_volumes || gl_GlobalInvocationID.y > cube_volumes || gl_GlobalInvocationID.z > cube_volumes) return;
-    vec3 terraform_point = vec3(round(hit_triangle.x_1 * u_points_per_axis), round(hit_triangle.y_1 * u_points_per_axis), round(hit_triangle.z_1 * u_points_per_axis));
+    int points_from_zero = u_points_per_axis - 1;
+    if (gl_GlobalInvocationID.x > points_from_zero || gl_GlobalInvocationID.y > points_from_zero || gl_GlobalInvocationID.z > points_from_zero) return;
+    vec2 chunk_offset = vec2(chunk_x, chunk_z) - u_current_chunk;
+    vec3 terraform_point = vec3((hit_triangle.x_1 + chunk_offset.x) * u_points_per_axis, hit_triangle.y_1 * u_points_per_axis, (hit_triangle.z_1 + chunk_offset.y) * u_points_per_axis);
     float distanceFromTerraformPoint = length(terraform_point - gl_GlobalInvocationID);
 
-    if (distanceFromTerraformPoint < u_radius)
+    if (distanceFromTerraformPoint <= u_radius)
     {
         values[
             gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis +
             gl_GlobalInvocationID.y * u_points_per_axis +
             gl_GlobalInvocationID.x
-        ] -= u_create_destroy_multiplier * u_strength / ((distanceFromTerraformPoint * distanceFromTerraformPoint) + 0.00001f);
+        ] += 0.1f / ((distanceFromTerraformPoint * distanceFromTerraformPoint) + 0.00001f);
     }
 }

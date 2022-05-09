@@ -158,7 +158,9 @@ namespace eng
 #ifdef ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif
@@ -171,7 +173,9 @@ namespace eng
 #ifdef ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif
@@ -184,7 +188,9 @@ namespace eng
 #if ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Vector2f uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif
@@ -197,7 +203,9 @@ namespace eng
 #if ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Vector3f uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif
@@ -210,7 +218,9 @@ namespace eng
 #ifdef ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Float uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif
@@ -223,7 +233,9 @@ namespace eng
 #ifdef ENG_DEBUG
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
+#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Int uniform with name %s does not exist!", name);
+#endif
             return;
         }
 #endif

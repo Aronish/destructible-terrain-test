@@ -154,11 +154,11 @@ float layeredNoise(vec3 position)
 
 void main()
 {
-    int cube_volumes = u_points_per_axis - 1;
-    if (gl_GlobalInvocationID.x > cube_volumes || gl_GlobalInvocationID.y > cube_volumes || gl_GlobalInvocationID.z > cube_volumes) return;
-    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * float(cube_volumes)) / u_resolution,
-          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * float(cube_volumes)) / u_resolution,
-          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(cube_volumes)) / u_resolution;
+    int points_from_zero = u_points_per_axis - 1; // ppa is a count, can't be used as index
+    if (gl_GlobalInvocationID.x > points_from_zero || gl_GlobalInvocationID.y > points_from_zero || gl_GlobalInvocationID.z > points_from_zero) return;
+    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * float(points_from_zero)) / u_resolution,
+          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * float(points_from_zero)) / u_resolution,
+          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(points_from_zero)) / u_resolution;
 
     float noise2d = u_amplitude_2d * pow(layeredNoise(vec2(x, z), u_octaves_2d, u_frequency_2d, u_lacunarity_2d, u_persistence_2d) * 0.5f + 0.5f, u_exponent_2d);
     //float ridge_test = u_amplitude_3d * pow(-abs(layeredNoise(vec2(x + 58931.4f, z -358.9f), u_octaves_3d, u_frequency_3d, u_lacunarity_3d, u_persistence_3d)) + 1.0f, u_exponent_3d);

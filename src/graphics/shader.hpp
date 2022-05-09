@@ -9,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 
+#define DETECT_INACTIVE_UNIFORMS 0
+
 namespace eng
 {
     class Shader
