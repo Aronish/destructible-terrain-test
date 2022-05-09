@@ -57,6 +57,7 @@ namespace eng
         void setPoolSize(int unsigned size);
         bool activateChunk(Chunk ** out_chunk, glm::ivec2 position);
         void deactivateChunk(Chunk * chunk);
+        bool getChunkAt(glm::ivec2 const & position, std::vector<Chunk>::iterator & out_chunk);
 
         std::vector<Chunk>::iterator begin() { return m_chunks.begin(); }
         std::vector<Chunk>::iterator end() { return m_chunks.end(); }

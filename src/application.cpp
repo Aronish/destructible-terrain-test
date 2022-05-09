@@ -106,7 +106,7 @@ namespace eng
         {
             m_world.onPlayerMoved(m_camera);
         }
-        m_world.update(m_window, m_camera);
+        if (!m_window.isCursorVisible()) m_world.update(m_window, m_camera);
     }
 
     WorldGenerationConfig static config;
@@ -129,7 +129,7 @@ namespace eng
             values_changed |= ImGui::DragFloat("Chunk Size", &m_world.m_chunk_size_in_units, 0.1f, 0.0f, FLT_MAX);
             values_changed |= ImGui::DragFloat("Threshold", &m_world.m_threshold, 0.05f);
             ImGui::DragFloat("Terraform Radius", &m_world.m_terraform_radius, 0.01f, 0.0f, 10.0f);
-            ImGui::DragFloat("Terraform Strength", &m_world.m_terraform_strength, 0.01f, 0.0f, 100.0f);
+            ImGui::DragFloat("Terraform Strength", &m_world.m_terraform_strength, 0.01f, -100.0f, 100.0f);
 
             if (values_changed |= ImGui::InputInt("Points/Chunk Axis", &m_world.m_points_per_axis, 1, 1))
             {

@@ -7,17 +7,17 @@ uniform int u_points_per_axis;
 uniform int u_resolution;
 uniform vec3 u_position_offset;
 
-layout(std430, binding = 0) buffer DensityDistribution
-{
-    float values[];
-};
-
-layout(std140, binding = 1) uniform WorldGenerationConfig
+layout(std140, binding = 0) uniform WorldGenerationConfig
 {
     int u_octaves_2d, u_octaves_3d;
     float u_frequency_2d, u_lacunarity_2d, u_persistence_2d, u_amplitude_2d, u_exponent_2d;
     float u_frequency_3d, u_lacunarity_3d, u_persistence_3d, u_amplitude_3d, u_exponent_3d;
     float u_water_level;
+};
+
+layout(std430, binding = 3) buffer DensityDistribution
+{
+    float values[];
 };
 
 layout(local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;

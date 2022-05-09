@@ -18,8 +18,8 @@ namespace eng
     struct WorldGenerationConfig
     {
         int m_octaves_2d = 5, m_octaves_3d = 1;
-        float m_frequency_2d = 0.05f, m_lacunarity_2d = 1.7f, m_persistence_2d = 1.0f / m_lacunarity_2d, m_amplitude_2d = 4.0f, m_exponent_2d = 4.0f;
-        float m_frequency_3d = 0.05f, m_lacunarity_3d = 1.7f, m_persistence_3d = 1.0f / m_lacunarity_3d, m_amplitude_3d = 1.0f, m_exponent_3d = 4.0f;
+        float m_frequency_2d = 0.05f, m_lacunarity_2d = 1.7f, m_persistence_2d = 1.0f / m_lacunarity_2d, m_amplitude_2d = 10.0f, m_exponent_2d = 4.2f;
+        float m_frequency_3d = 0.05f, m_lacunarity_3d = 1.7f, m_persistence_3d = 1.0f / m_lacunarity_3d, m_amplitude_3d = 1.0f, m_exponent_3d = 4.2f;
         float m_water_level{};
     };
 
@@ -32,8 +32,8 @@ namespace eng
     private:
         int m_points_per_axis = 16, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         glm::ivec2 m_last_chunk_coords{};
-        int m_render_distance = 2;
-        float m_threshold = 4.0f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.7f, m_terraform_radius = 2.0f, m_create_destroy_multiplier = 1.0f;
+        int m_render_distance = 4;
+        float m_threshold = -0.2f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f, m_create_destroy_multiplier = 1.0f;
 
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;

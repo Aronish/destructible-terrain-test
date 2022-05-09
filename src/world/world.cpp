@@ -396,7 +396,7 @@ namespace eng
         if (m_last_chunk_coords != chunk_coords)
         {
             m_last_chunk_coords = chunk_coords;
-            ENG_LOG_F("%d, %d", m_last_chunk_coords.x, m_last_chunk_coords.y);
+            //ENG_LOG_F("%d, %d", m_last_chunk_coords.x, m_last_chunk_coords.y);
             generateChunks();
         }
     }
@@ -420,8 +420,8 @@ namespace eng
             }
         }
         
-        glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_generation_config_u);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_triangulation_table_ss);
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
         for (int x_i = -m_render_distance; x_i <= m_render_distance; ++x_i)
         {
             for (int z_i = -m_render_distance; z_i <= m_render_distance; ++z_i)
@@ -431,12 +431,13 @@ namespace eng
                 {
                     Chunk * chunk = nullptr;
                     if (!m_chunk_pool.activateChunk(&chunk, glm::ivec2{ x, z })) continue;
+                    int has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1);
                     // Generate values for all points
                     m_density_generator->bind();
                     m_density_generator->setUniformInt("u_points_per_axis", m_points_per_axis);
                     m_density_generator->setUniformInt("u_resolution", m_resolution);
                     m_density_generator->setUniformVector3f("u_position_offset", glm::vec3(static_cast<float>(x), 0.0f, static_cast<float>(z)));
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk->getDensityDistributionBuffer());
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getDensityDistributionBuffer());
                     m_density_generator->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -444,11 +445,30 @@ namespace eng
                     m_marching_cubes->bind();
                     m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
                     m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getMeshVB());
+                    m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk->getMeshVB());
                     glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, chunk->getDrawIndirectBuffer());
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
                     int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
                     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
+                    if (has_neighbors & 1)
+                    {
+                        std::vector<Chunk>::iterator neighbor_x;
+                        m_chunk_pool.getChunkAt({ x - 1, z }, neighbor_x);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, neighbor_x->getDensityDistributionBuffer());
+                    }
+                    if (has_neighbors & 2)
+                    {
+                        std::vector<Chunk>::iterator neighbor_z;
+                        m_chunk_pool.getChunkAt({ x, z - 1 }, neighbor_z);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, neighbor_z->getDensityDistributionBuffer());
+                    }
+                    if (has_neighbors & 1 && has_neighbors & 2)
+                    {
+                        std::vector<Chunk>::iterator neighbor_xz;
+                        m_chunk_pool.getChunkAt({ x - 1, z - 1 }, neighbor_xz);
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, neighbor_xz->getDensityDistributionBuffer());
+                    }
                     m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
@@ -463,26 +483,36 @@ namespace eng
         {
             m_terraform->bind();
             m_terraform->setUniformInt("u_points_per_axis", m_points_per_axis);
-            //m_terraform->setUniformFloat("u_threshold", m_threshold);
-            //m_terraform->setUniformFloat("u_strength", m_terraform_strength);
+            m_terraform->setUniformFloat("u_strength", m_terraform_strength);
             m_terraform->setUniformFloat("u_radius", m_terraform_radius);
-            //m_terraform->setUniformFloat("u_create_destroy_multiplier", m_create_destroy_multiplier);
             m_terraform->setUniformVector2f("u_current_chunk", static_cast<glm::vec2>(position));
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk->getDensityDistributionBuffer());
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getDensityDistributionBuffer());
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_ray_hit_data_ss);
             m_terraform->dispatchCompute(m_resolution, m_resolution, m_resolution);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+            // Find neighbors
+            int has_neighbors = 0;
+            std::vector<Chunk>::iterator neighbor_x, neighbor_z, neighbor_xz;
+            has_neighbors |= static_cast<int>(m_chunk_pool.getChunkAt({ position.x - 1, position.y }, neighbor_x));
+            has_neighbors |= static_cast<int>(m_chunk_pool.getChunkAt({ position.x, position.y - 1 }, neighbor_z)) << 1;
+            if (has_neighbors & 1 && has_neighbors & 2) m_chunk_pool.getChunkAt({ position.x - 1, position.y - 1 }, neighbor_xz);
             
+            // Generate mesh
             m_marching_cubes->bind();
             m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
             m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 1, m_generation_config_u);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_triangulation_table_ss);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getMeshVB());
+            m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk->getMeshVB());
             glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, chunk->getDrawIndirectBuffer());
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
             int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(initial_indirect_config), initial_indirect_config);
+            if (has_neighbors & 1) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, neighbor_x->getDensityDistributionBuffer());
+            if (has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, neighbor_z->getDensityDistributionBuffer());
+            if (has_neighbors & 1 && has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, neighbor_xz->getDensityDistributionBuffer());
             m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             glFlush();
@@ -515,7 +545,7 @@ namespace eng
                     for (int i = 0; i < 9; ++i)
                     {
                         int x = i % 3 - 1, z = i / 3 - 1;
-                        if (circleSquareIntersect({ m_hit_info_ptr[0], m_hit_info_ptr[2], m_terraform_radius / m_points_per_axis }, { x, z, 1.0f })) // Intersection test in unit space
+                        if (circleSquareIntersect({ m_hit_info_ptr[0], m_hit_info_ptr[2], m_terraform_radius / m_points_per_axis + 0.1f }, { x, z, 1.0f })) // Intersection test in unit space
                         {
                             terraform({ m_hit_info_ptr[19] + x, m_hit_info_ptr[20] + z });
                         }
@@ -545,7 +575,7 @@ namespace eng
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive()) continue;
-            m_chunk_renderer->setUniformVector3f("u_color", glm::vec3(chunk.getPosition().x % 2, 0.2f, chunk.getPosition().y % 2));
+            m_chunk_renderer->setUniformFloat("u_points_per_axis", m_points_per_axis);
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), glm::vec3(chunk.getPosition().x, 0.0f, chunk.getPosition().y)));
             VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::POSITION_NORMAL_3F);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk.getDrawIndirectBuffer());

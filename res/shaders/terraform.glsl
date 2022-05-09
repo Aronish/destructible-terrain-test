@@ -13,20 +13,20 @@ struct UnpaddedTriangle
     float nx_3, ny_3, nz_3;
 };
 
-layout(std430, binding = 0) buffer DensityDistribution
-{
-    float values[];
-};
-
 layout (std430, binding = 1) buffer RayHitData
 {
     UnpaddedTriangle hit_triangle;
     float hit, chunk_x, chunk_z;
 };
 
+layout(std430, binding = 3) buffer DensityDistribution
+{
+    float values[];
+};
+
 uniform int u_points_per_axis;
 uniform float u_radius;
-uniform float u_threshold;
+uniform float u_strength;
 uniform vec2 u_current_chunk;
 
 layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
@@ -45,6 +45,6 @@ void main()
             gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis +
             gl_GlobalInvocationID.y * u_points_per_axis +
             gl_GlobalInvocationID.x
-        ] += 0.1f / ((distanceFromTerraformPoint * distanceFromTerraformPoint) + 0.00001f);
+        ] += u_strength / ((distanceFromTerraformPoint * distanceFromTerraformPoint) + 0.00001f);
     }
 }

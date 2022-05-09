@@ -26,6 +26,7 @@ const vec3 light_direction = vec3(0.0f, -1.0f, 0.0f);
 in vec3 v_position_W;
 in vec3 v_normal_W;
 
+uniform float u_points_per_axis;
 uniform vec3 u_camera_position_W;
 uniform vec3 u_color = vec3(0.22f, 0.42f, 0.046f);
 
@@ -47,21 +48,19 @@ void main()
     vec3 half_way_direction = normalize(direction + view_direction);
 
     float diffuse_factor = max(dot(normal, direction), 0.0f);
-/*
     float steepness = 1.0f - dot(normal, vec3(0.0f, 1.0f, 0.0f));
     vec3 diffuse = vec3(diffuse_factor);
-    if (v_position_W.y < 0.05f)
+    if (v_position_W.y < 0.01f * u_points_per_axis)
     {
         diffuse *= vec3(0.64f, 0.77f, 0.52f);
-    } else if (v_position_W.y >= 0.05f && v_position_W.y < 4.85f)
+    } else if (v_position_W.y >= 0.01f * u_points_per_axis && v_position_W.y < 0.8 * u_points_per_axis)
     {
         diffuse *= vec3(0.22f, 0.42f, 0.046f);// * steepness;
     } else
     {
         diffuse *= vec3(0.3f, 0.3f, 0.3f);
     }
-    vec3 ambient = vec3(0.1f * steepness);
-*/
+    vec3 ambient = vec3(0.1f * steepness + 0.01f);
     vec3 specular = vec3(0.25f) * pow(max(dot(normal, half_way_direction), 0.0f), 8.0f);
-    o_color = vec4(vec3(0.1f) + u_color * diffuse_factor + specular, 1.0f);
+    o_color = vec4(ambient + diffuse + specular, 1.0f);
 }

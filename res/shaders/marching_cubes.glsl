@@ -15,6 +15,7 @@ const int cornerIndexBFromEdge[12] =
 
 uniform int u_points_per_axis;
 uniform float u_threshold = 0.0f;
+uniform int u_has_neighbors;
 
 struct UnpaddedTriangle
 {
@@ -26,25 +27,25 @@ struct UnpaddedTriangle
     float nx_3, ny_3, nz_3;
 };
 
-layout (std430, binding = 0) readonly buffer IsoSurface
-{
-    readonly float iso_surface_values[];
-};
-
-layout (std430, binding = 2) readonly buffer TriangulationTable
+layout (std430, binding = 0) readonly buffer TriangulationTable
 {
     readonly int tri_table[256][16];
 };
 
-layout (std430, binding = 3) buffer Mesh
+layout (std430, binding = 1) buffer Mesh
 {
     UnpaddedTriangle triangles[];
 };
 
-layout (binding = 4) buffer IndirectDrawConfig
+layout (binding = 2) buffer IndirectDrawConfig
 {
     uint index_count, prim_count, first_index, base_vertex, base_instance, triangle_count;
 };
+
+layout (std430, binding = 3) readonly buffer DensityDistribution
+{
+    readonly float values[];
+} density_distributions[4];
 
 uint indexFromCoord(uint x, uint y, uint z)
 {
@@ -57,26 +58,37 @@ vec3 interpolateVertices(vec4 v1, vec4 v2)
     return v1.xyz + t * (v2.xyz - v1.xyz);
 }
 
+float getDensityBasedOnNeighbors(uvec3 density_sample_point)
+{
+    if (bool(u_has_neighbors))
+    {
+        if (u_has_neighbors == 3 && density_sample_point.x + density_sample_point.z == 0) return density_distributions[3].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, u_points_per_axis - 1)];
+        if (density_sample_point.x == 0 && bool(u_has_neighbors & 1)) return density_distributions[1].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, density_sample_point.z)];
+        if (density_sample_point.z == 0 && bool(u_has_neighbors & 2)) return density_distributions[2].values[indexFromCoord(density_sample_point.x, density_sample_point.y, u_points_per_axis - 1)];
+    }
+    return density_distributions[0].values[indexFromCoord(density_sample_point.x, density_sample_point.y, density_sample_point.z)];
+}
+
 layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
 
 void main()
 {
-    int cube_volumes = u_points_per_axis - 1; // ppa is a count, can't be used as index
-    if (gl_GlobalInvocationID.x >= cube_volumes || gl_GlobalInvocationID.y >= cube_volumes || gl_GlobalInvocationID.z >= cube_volumes) return; // however there's one less cube volume per axis
+    int points_from_zero = u_points_per_axis - 1; // ppa is a count, can't be used as index
+    if (gl_GlobalInvocationID.x >= points_from_zero || gl_GlobalInvocationID.y >= points_from_zero || gl_GlobalInvocationID.z >= points_from_zero) return; // however there's one less cube volume per axis
 
-    float step_size = 1.0f / float(cube_volumes);
+    float step_size = 1.0f / float(points_from_zero);
     vec3 scaled_coordinate = vec3(gl_GlobalInvocationID) * step_size;
 
     const vec4 cube_corners[8] =
     {
-        vec4(scaled_coordinate,                                             iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
-        vec4(scaled_coordinate + vec3(step_size,  0.0f,       0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z)]),
-        vec4(scaled_coordinate + vec3(step_size,  0.0f,       step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
-        vec4(scaled_coordinate + vec3(0.0f,       0.0f,       step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1)]),
-        vec4(scaled_coordinate + vec3(0.0f,       step_size,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
-        vec4(scaled_coordinate + vec3(step_size,  step_size,  0.0f),        iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z)]),
-        vec4(scaled_coordinate + vec3(step_size,  step_size,  step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)]),
-        vec4(scaled_coordinate + vec3(0.0f,       step_size,  step_size),   iso_surface_values[indexFromCoord(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)])
+        vec4(scaled_coordinate,                                             getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       0.0f,       step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)))
     };
 
     uint cube_index = 0;

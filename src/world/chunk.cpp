@@ -135,4 +135,18 @@ namespace eng
         chunk->deactivate(m_first_unused);
         m_first_unused = chunk;
     }
+
+    bool ChunkPool::getChunkAt(glm::ivec2 const & position, std::vector<Chunk>::iterator & out_chunk)
+    {
+        auto result = std::find_if(begin(), end(), [&](Chunk chunk)
+        {
+            return chunk.isActive() && chunk.getPosition() == position;
+        });
+        if (result != end())
+        {
+            out_chunk = result;
+            return true;
+        }
+        return false;
+    }
 }
