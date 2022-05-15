@@ -16,7 +16,7 @@ struct UnpaddedTriangle
 layout (std430, binding = 1) buffer RayHitData
 {
     UnpaddedTriangle hit_triangle;
-    float hit, chunk_x, chunk_z;
+    float hit, chunk_x, chunk_y, chunk_z;
 };
 
 layout(std430, binding = 3) buffer DensityDistribution
@@ -27,7 +27,7 @@ layout(std430, binding = 3) buffer DensityDistribution
 uniform int u_points_per_axis;
 uniform float u_radius;
 uniform float u_strength;
-uniform vec2 u_current_chunk;
+uniform vec3 u_current_chunk;
 
 layout (local_size_x = WORK_GROUP_SIZE, local_size_y = WORK_GROUP_SIZE, local_size_z = WORK_GROUP_SIZE) in;
 
@@ -35,8 +35,8 @@ void main()
 {
     int points_from_zero = u_points_per_axis - 1;
     if (gl_GlobalInvocationID.x > points_from_zero || gl_GlobalInvocationID.y > points_from_zero || gl_GlobalInvocationID.z > points_from_zero) return;
-    vec2 chunk_offset = vec2(chunk_x, chunk_z) - u_current_chunk;
-    vec3 terraform_point = vec3((hit_triangle.x_1 + chunk_offset.x) * u_points_per_axis, hit_triangle.y_1 * u_points_per_axis, (hit_triangle.z_1 + chunk_offset.y) * u_points_per_axis);
+    vec3 chunk_offset = vec3(chunk_x, chunk_y, chunk_z) - u_current_chunk;
+    vec3 terraform_point = vec3((hit_triangle.x_1 + chunk_offset.x), (hit_triangle.y_1 + chunk_offset.y), (hit_triangle.z_1 + chunk_offset.z)) * u_points_per_axis;
     float distanceFromTerraformPoint = length(terraform_point - gl_GlobalInvocationID);
 
     if (distanceFromTerraformPoint <= u_radius)

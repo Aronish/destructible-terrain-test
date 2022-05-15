@@ -17,7 +17,7 @@ namespace eng
         bool m_active = false, m_shit = false;
         union
         {
-            glm::ivec2 m_position;
+            glm::ivec3 m_position;
             Chunk * m_next_unused;
         };
 
@@ -25,10 +25,10 @@ namespace eng
         Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
 
-        void activate(glm::ivec2 position);
+        void activate(glm::ivec3 position);
         void deactivate(Chunk * chunk);
 
-        glm::ivec2 const & getPosition() const;
+        glm::ivec3 const & getPosition() const;
         Chunk * getNextUnused() const;
 
         bool isActive() const;
@@ -51,9 +51,10 @@ namespace eng
         void initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setPoolSize(int unsigned size);
-        bool activateChunk(Chunk ** out_chunk, glm::ivec2 position);
+        bool activateChunk(Chunk ** out_chunk, glm::ivec3 position);
         void deactivateChunk(Chunk * chunk);
-        bool getChunkAt(glm::ivec2 const & position, std::vector<Chunk>::iterator & out_chunk);
+        bool getChunkAt(glm::ivec3 const & position, std::vector<Chunk>::iterator & out_chunk);
+        bool hasChunkAt(glm::ivec3 const & position);
 
         std::vector<Chunk>::iterator begin() { return m_chunks.begin(); }
         std::vector<Chunk>::iterator end() { return m_chunks.end(); }

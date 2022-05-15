@@ -25,7 +25,7 @@ namespace eng
         glNamedBufferData(m_density_distribution_ss, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
     }
 
-    void Chunk::activate(glm::ivec2 position)
+    void Chunk::activate(glm::ivec3 position)
     {
         m_position = position;
         m_active = true;
@@ -62,7 +62,7 @@ namespace eng
         return m_draw_indirect_buffer;
     }
 
-    glm::ivec2 const & Chunk::getPosition() const
+    glm::ivec3 const & Chunk::getPosition() const
     {
         return m_position;
     }
@@ -105,7 +105,7 @@ namespace eng
         m_chunks[size - 1].deactivate(nullptr);
     }
 
-    bool ChunkPool::activateChunk(Chunk ** out_chunk, glm::ivec2 position)
+    bool ChunkPool::activateChunk(Chunk ** out_chunk, glm::ivec3 position)
     {
         if (m_first_unused == nullptr) return false;
         *out_chunk = m_first_unused;
@@ -120,7 +120,7 @@ namespace eng
         m_first_unused = chunk;
     }
 
-    bool ChunkPool::getChunkAt(glm::ivec2 const & position, std::vector<Chunk>::iterator & out_chunk)
+    bool ChunkPool::getChunkAt(glm::ivec3 const & position, std::vector<Chunk>::iterator & out_chunk)
     {
         auto result = std::find_if(begin(), end(), [&](Chunk chunk)
         {
@@ -132,5 +132,13 @@ namespace eng
             return true;
         }
         return false;
+    }
+
+    bool ChunkPool::hasChunkAt(glm::ivec3 const & position)
+    {
+        return std::find_if(begin(), end(), [&](Chunk chunk)
+        {
+            return chunk.isActive() && chunk.getPosition() == position;
+        }) != end();
     }
 }

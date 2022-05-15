@@ -27,10 +27,10 @@ namespace eng
         friend class Chunk;
         friend class Application; //For Debug UI
     private:
-        int unsigned static constexpr WORK_GROUP_SIZE = 10, RAY_HIT_DATA_SIZE = 21;
+        int unsigned static constexpr WORK_GROUP_SIZE = 10, RAY_HIT_DATA_SIZE = 22;
     private:
         int m_points_per_axis = 16, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
-        glm::ivec2 m_last_chunk_coords{};
+        glm::ivec3 m_last_chunk_coords{};
         int m_render_distance = 4;
         float m_threshold = -0.2f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f, m_create_destroy_multiplier = 1.0f;
 
@@ -59,15 +59,15 @@ namespace eng
         void initDynamicBuffers();
 
         void castRay(FirstPersonCamera const & camera);
-        void chunkRayIntersection(glm::ivec2 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
+        void chunkRayIntersection(glm::ivec3 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
 
         void onKeyPressed(KeyPressedEvent const & event);
         void onPlayerMoved(FirstPersonCamera const & camera);
 
         void invalidateAllChunks();
-        void bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec2 const & chunk_coordinate);
+        void bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec3 const & chunk_coordinate);
         void generateChunks();
-        void terraform(glm::ivec2 const & chunk);
+        void terraform(glm::ivec3 const & chunk);
 
         void update(Window const & window, FirstPersonCamera const & camera);
         void render(FirstPersonCamera const & camera);
