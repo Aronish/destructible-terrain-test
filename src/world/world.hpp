@@ -65,6 +65,7 @@ namespace eng
         void onPlayerMoved(FirstPersonCamera const & camera);
 
         void invalidateAllChunks();
+        void bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec2 const & chunk_coordinate);
         void generateChunks();
         void terraform(glm::ivec2 const & chunk);
 

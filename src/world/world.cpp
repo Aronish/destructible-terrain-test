@@ -379,6 +379,9 @@ namespace eng
         {
             m_density_generator->compile("res/shaders/generate_points.glsl");
             m_chunk_renderer->compile("res/shaders/light_test.glsl");
+            m_marching_cubes->compile("res/shaders/marching_cubes.glsl");
+            invalidateAllChunks();
+            generateChunks();
         }
     }
 
@@ -398,6 +401,19 @@ namespace eng
         for (auto & chunk : m_chunk_pool)
         {
             m_chunk_pool.deactivateChunk(&chunk);
+        }
+    }
+    
+    void World::bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec2 const & chunk_coordinate)
+    {
+        for (uint8_t i = 1; i <= 3; ++i)
+        {
+            if ((neighbor_mask & i) == i)
+            {
+                std::vector<Chunk>::iterator neighbor;
+                m_chunk_pool.getChunkAt(chunk_coordinate - glm::ivec2{ (i & 0b01) == 0b01, (i & 0b10) == 0b10 }, neighbor);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, starting_index + (i - 1), neighbor->getDensityDistributionBuffer());
+            }
         }
     }
 
@@ -423,7 +439,7 @@ namespace eng
                 {
                     Chunk * chunk = nullptr;
                     if (!m_chunk_pool.activateChunk(&chunk, glm::ivec2{ x, z })) continue;
-                    int has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1);
+                    uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1);
                     // Generate values for all points
                     m_density_generator->bind();
                     m_density_generator->setUniformInt("u_points_per_axis", m_points_per_axis);
@@ -443,24 +459,7 @@ namespace eng
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
                     int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
                     glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), initial_indirect_config);
-                    if (has_neighbors & 1)
-                    {
-                        std::vector<Chunk>::iterator neighbor_x;
-                        m_chunk_pool.getChunkAt({ x - 1, z }, neighbor_x);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, neighbor_x->getDensityDistributionBuffer());
-                    }
-                    if (has_neighbors & 2)
-                    {
-                        std::vector<Chunk>::iterator neighbor_z;
-                        m_chunk_pool.getChunkAt({ x, z - 1 }, neighbor_z);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, neighbor_z->getDensityDistributionBuffer());
-                    }
-                    if (has_neighbors & 1 && has_neighbors & 2)
-                    {
-                        std::vector<Chunk>::iterator neighbor_xz;
-                        m_chunk_pool.getChunkAt({ x - 1, z - 1 }, neighbor_xz);
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, neighbor_xz->getDensityDistributionBuffer());
-                    }
+                    bindNeighborChunks(4, has_neighbors, { x, z });
                     m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
                     glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
                 }
@@ -483,28 +482,19 @@ namespace eng
             m_terraform->dispatchCompute(m_resolution, m_resolution, m_resolution);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-            // Find neighbors
-            int has_neighbors = 0;
-            std::vector<Chunk>::iterator neighbor_x, neighbor_z, neighbor_xz;
-            has_neighbors |= static_cast<int>(m_chunk_pool.getChunkAt({ position.x - 1, position.y }, neighbor_x));
-            has_neighbors |= static_cast<int>(m_chunk_pool.getChunkAt({ position.x, position.y - 1 }, neighbor_z)) << 1;
-            if (has_neighbors & 1 && has_neighbors & 2) m_chunk_pool.getChunkAt({ position.x - 1, position.y - 1 }, neighbor_xz);
+            uint8_t has_neighbors = (position.x != m_last_chunk_coords.x - m_render_distance) | ((position.y != m_last_chunk_coords.y - m_render_distance) << 1);
             
             // Generate mesh
             m_marching_cubes->bind();
             m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
             m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
             m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
-            glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk->getMeshVB());
             glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
             int unsigned constexpr static initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
             glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), initial_indirect_config);
-            if (has_neighbors & 1) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, neighbor_x->getDensityDistributionBuffer());
-            if (has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, neighbor_z->getDensityDistributionBuffer());
-            if (has_neighbors & 1 && has_neighbors & 2) glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, neighbor_xz->getDensityDistributionBuffer());
+            bindNeighborChunks(4, has_neighbors, position);
             m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             glFlush();
@@ -532,6 +522,8 @@ namespace eng
                 m_raycast_active = false;
                 if (m_hit_info_ptr[18])
                 {
+                    glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
                     for (int i = 0; i < 9; ++i)
                     {
                         int x = i % 3 - 1, z = i / 3 - 1;

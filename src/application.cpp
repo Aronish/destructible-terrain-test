@@ -53,8 +53,7 @@ namespace eng
         m_crosshair_ib = m_asset_manager.createBuffer();
 
         m_crosshair_vb = m_asset_manager.createBuffer();
-        glBindBuffer(GL_ARRAY_BUFFER, m_crosshair_vb);
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(quad_vertices), quad_vertices, 0);
+        glNamedBufferStorage(m_crosshair_vb, sizeof(quad_vertices), quad_vertices, 0);
 
         m_crosshair_va = m_asset_manager.createVertexArray();
         VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
@@ -63,10 +62,6 @@ namespace eng
         m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
         m_world.onRendererInit(m_asset_manager);
         m_world.generateChunks();
-
-        int count = 0;
-        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &count);
-        ENG_LOG_F("max invoc: %d", count);
     }
 
     void Application::onEvent(Event const & event)

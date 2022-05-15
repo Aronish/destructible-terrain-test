@@ -62,9 +62,9 @@ float getDensityBasedOnNeighbors(uvec3 density_sample_point)
 {
     if (bool(u_has_neighbors))
     {
-        if (u_has_neighbors == 3 && density_sample_point.x + density_sample_point.z == 0) return density_distributions[3].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, u_points_per_axis - 1)];
-        if (density_sample_point.x == 0 && bool(u_has_neighbors & 1)) return density_distributions[1].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, density_sample_point.z)];
-        if (density_sample_point.z == 0 && bool(u_has_neighbors & 2)) return density_distributions[2].values[indexFromCoord(density_sample_point.x, density_sample_point.y, u_points_per_axis - 1)];
+        if (bool((u_has_neighbors & 3) == 3) && density_sample_point.x + density_sample_point.z == 0) return density_distributions[3].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, u_points_per_axis - 1)];
+        if (density_sample_point.x == 0 && bool((u_has_neighbors & 1) == 1)) return density_distributions[1].values[indexFromCoord(u_points_per_axis - 1, density_sample_point.y, density_sample_point.z)];
+        if (density_sample_point.z == 0 && bool((u_has_neighbors & 2) == 2)) return density_distributions[2].values[indexFromCoord(density_sample_point.x, density_sample_point.y, u_points_per_axis - 1)];
     }
     return density_distributions[0].values[indexFromCoord(density_sample_point.x, density_sample_point.y, density_sample_point.z)];
 }
