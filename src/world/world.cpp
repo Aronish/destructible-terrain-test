@@ -320,7 +320,7 @@ namespace eng
         if (dx > 0) t_max_x = t_delta_x * (1 - adjusted_position_x + std::floorf(adjusted_position_x)); else t_max_x = t_delta_x * (adjusted_position_x - std::floorf(adjusted_position_x));
         int x = m_last_chunk_coords.x;
 
-        float t_delta_y = 0.0f, t_max_y = 0.0f, adjusted_position_y = camera.getPosition().x / m_chunk_size_in_units;
+        float t_delta_y = 0.0f, t_max_y = 0.0f, adjusted_position_y = camera.getPosition().y / m_chunk_size_in_units;
         if (dy != 0) t_delta_y = std::fmin(m_chunk_size_in_units * dy / camera.getDirection().y, 10'000'000.0f); else t_delta_y = 10'000'000.0f;
         if (dy > 0) t_max_y = t_delta_y * (1 - adjusted_position_y + std::floorf(adjusted_position_y)); else t_max_y = t_delta_y * (adjusted_position_y - std::floorf(adjusted_position_y));
         int y = m_last_chunk_coords.y;
@@ -425,7 +425,7 @@ namespace eng
             if ((neighbor_mask & i) == i)
             {
                 std::vector<Chunk>::iterator neighbor;
-                m_chunk_pool.getChunkAt(chunk_coordinate - glm::ivec3{ (i & 0b01) == 0b001, (i & 0b100) == 0b100, (i & 0b10) == 0b010 }, neighbor);
+                m_chunk_pool.getChunkAt(chunk_coordinate - glm::ivec3{ (i & 0b001) == 0b001, (i & 0b100) == 0b100, (i & 0b010) == 0b010 }, neighbor);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, starting_index + (i - 1), neighbor->getDensityDistributionBuffer());
             }
         }
@@ -568,9 +568,9 @@ namespace eng
                             terraform({ m_hit_info_ptr[19] + x, m_hit_info_ptr[20] + y, m_hit_info_ptr[21] + z });
                         }
                     }
-                } else ENG_LOG("NO HIT"); // SOMETIMES IT'S NOT DETECTING A HIT WHERE THERE SHOULD BE ONE
+                }
                 glDeleteSync(m_raycast_readback_sync);
-            } else ENG_LOG("Not signaled");
+            }
             //ENG_LOG_F("terraform total: %lld ns", (std::chrono::high_resolution_clock::now() - start).count());
         } else
         {
