@@ -60,13 +60,13 @@ vec3 interpolateVertices(vec4 v1, vec4 v2)
 
 float getDensityBasedOnNeighbors(uvec3 density_sample_point)
 {
-    if (bool(u_has_neighbors))
+    if (bool(u_has_neighbors)) // 0byzx (might swap y and z idk)
     {
         bool has_x = (u_has_neighbors & 1) == 1, has_y = (u_has_neighbors & 4) == 4, has_z = (u_has_neighbors & 2) == 2;
-        bool x_zero = density_sample_point.x == 0, y_zero = density_sample_point.y == 0, z_zero = density_sample_point.z == 0;
-        if (x_zero && has_x || y_zero && has_y || z_zero && has_z)
+        bool x_zero_has = density_sample_point.x == 0 && has_x, y_zero_has = density_sample_point.y == 0 && has_y, z_zero_has = density_sample_point.z == 0 && has_z;
+        if (x_zero_has || y_zero_has || z_zero_has)
         {
-            return density_distributions[int(x_zero && has_x) | int(z_zero && has_z) << 1 | int(y_zero && has_y) << 2].values[indexFromCoord(x_zero && has_x ? u_points_per_axis - 1 : density_sample_point.x, y_zero && has_y ? u_points_per_axis - 1 : density_sample_point.y, z_zero && has_z ? u_points_per_axis - 1 : density_sample_point.z)];
+            return density_distributions[int(x_zero_has) | int(z_zero_has) << 1 | int(y_zero_has) << 2].values[indexFromCoord(x_zero_has ? u_points_per_axis - 1 : density_sample_point.x, y_zero_has ? u_points_per_axis - 1 : density_sample_point.y, z_zero_has ? u_points_per_axis - 1 : density_sample_point.z)];
         }
     }
     return density_distributions[0].values[indexFromCoord(density_sample_point.x, density_sample_point.y, density_sample_point.z)];
