@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <glm/glm.hpp>
+#include <PxPhysicsAPI.h>
 
 #include "event/event.hpp"
 #include "first_person_camera.hpp"
@@ -16,9 +17,35 @@
 
 namespace eng
 {
+
     class Application
     {
     private:
+        class EngPxAllocatorCallback : public physx::PxAllocatorCallback
+        {
+        public:
+            void * allocate(size_t size, char const *, char const *, int) override
+            {
+                return _aligned_malloc(size, 16);
+            }
+
+            void deallocate(void * ptr) override
+            {
+                _aligned_free(ptr);
+            }
+        } m_px_allocator_callback;
+
+        class EngPxErrorCallback : public physx::PxErrorCallback
+        {
+        public:
+            void reportError(physx::PxErrorCode::Enum code, char const * message, char const *, int) override
+            {
+                ENG_LOG_F("[PhysX] %d: %s", code, message);
+            }
+        } m_px_error_callback;
+
+        physx::PxFoundation * m_px_foundation;
+
         Window m_window; // Has to be first due to OpenGL initialization
         AssetManager m_asset_manager;
         FirstPersonCamera m_camera;
@@ -31,6 +58,7 @@ namespace eng
 
     public:
         Application(unsigned int width, unsigned int height, char const * title, bool maximized);
+        ~Application();
 
         void run();
         void onEvent(Event const & event);

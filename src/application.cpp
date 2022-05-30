@@ -32,6 +32,9 @@ namespace eng
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
 
+        m_px_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_px_allocator_callback, m_px_error_callback);
+        if (!m_px_foundation) ENG_LOG("Failed to initialize PxFoundation!");
+
         m_crosshair_texture = m_asset_manager.getTexture("res/textures/crosshair.png");
         m_textured_quad_shader = m_asset_manager.getShader("res/shaders/textured_quad.glsl");
 
@@ -62,6 +65,11 @@ namespace eng
         m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
         m_world.onRendererInit(m_asset_manager);
         m_world.generateChunks();
+    }
+
+    Application::~Application()
+    {
+        m_px_foundation->release();
     }
 
     void Application::onEvent(Event const & event)
