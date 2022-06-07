@@ -11,6 +11,23 @@ namespace eng
         return (x > 0) - (x < 0);
     }
     
+    float constexpr sqr(float x)
+    {
+        return x * x;
+    }
+    
+    bool sphereCubeIntersect(glm::vec3 const & cube_min, glm::vec3 const & cube_max, glm::vec4 const & sphere_pos_radius)
+    {
+        float dist_squared = sqr(sphere_pos_radius.w);
+        if      (sphere_pos_radius.x < cube_min.x) dist_squared -= sqr(sphere_pos_radius.x - cube_min.x);
+        else if (sphere_pos_radius.x > cube_max.x) dist_squared -= sqr(sphere_pos_radius.x - cube_max.x);
+        if      (sphere_pos_radius.y < cube_min.y) dist_squared -= sqr(sphere_pos_radius.y - cube_min.y);
+        else if (sphere_pos_radius.y > cube_max.y) dist_squared -= sqr(sphere_pos_radius.y - cube_max.y);
+        if      (sphere_pos_radius.z < cube_min.z) dist_squared -= sqr(sphere_pos_radius.z - cube_min.z);
+        else if (sphere_pos_radius.z > cube_max.z) dist_squared -= sqr(sphere_pos_radius.z - cube_max.z);
+        return dist_squared > 0;
+    }
+    
     World::World(AssetManager & asset_manager) : m_chunk_pool(asset_manager)
     {
     }
@@ -311,7 +328,7 @@ namespace eng
         m_chunk_pool.setMeshConfig(m_max_triangle_count, m_points_per_axis);
     }
 
-    void World::castRay(FirstPersonCamera const & camera)
+    void World::castRay(GpuFenceManager & fence_manager, FirstPersonCamera const & camera)
     {
         int dx = sign(camera.getDirection().x), dy = sign(camera.getDirection().y), dz = sign(camera.getDirection().z);
 
@@ -359,9 +376,24 @@ namespace eng
                 }
             }
         }
-        m_raycast_readback_sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-        glFlush();
-        m_raycast_active = true;
+        fence_manager.setBarrier([this, sphereCubeIntersect = sphereCubeIntersect]()
+        {
+            if (m_hit_info_ptr[18])
+            {
+                glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
+
+                for (int i = 0; i < 18; ++i)
+                {
+                    int x = i % 3 - 1, y = i / 9, z = i / 3 % 3 - 1;
+                    if (sphereCubeIntersect({ x, y, z }, glm::ivec3{ x, y, z } + 1, { m_hit_info_ptr[0], m_hit_info_ptr[1], m_hit_info_ptr[2], m_terraform_radius / m_points_per_axis + 0.1f })) // Intersection test in unit space
+                    {
+                        terraform({ m_hit_info_ptr[19] + x, m_hit_info_ptr[20] + y, m_hit_info_ptr[21] + z });
+                        // CHUNK (0, 0) DOES SOMETHING WEIRD
+                    }
+                }
+            }
+        });
     }
 
     void World::chunkRayIntersection(glm::ivec3 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction)
@@ -518,66 +550,23 @@ namespace eng
         }
     }
 
+/*
     bool circleSquareIntersect(glm::vec3 const & circle_pos_radius, glm::vec3 const & square_pos_size)
     {
         float const half_size = square_pos_size.z / 2.0f;
         float const circle_distance_x = std::abs(circle_pos_radius.x - (square_pos_size.x + half_size)), circle_distance_y = std::abs(circle_pos_radius.y - (square_pos_size.y + half_size));
         if (circle_distance_x > (half_size + circle_pos_radius.z) || circle_distance_y > (half_size + circle_pos_radius.z)) return false;
         if (circle_distance_x <= half_size || circle_distance_y <= half_size) return true;
-        float const corner_distance = (circle_distance_x - half_size) * (circle_distance_x - half_size) + (circle_distance_y - half_size) * (circle_distance_y - half_size);
-        return corner_distance <= circle_pos_radius.z * circle_pos_radius.z;
+        float const corner_distance = sqr(circle_distance_x - half_size) + sqr(circle_distance_y - half_size);
+        return corner_distance <= sqr(circle_pos_radius.z);
     }
+*/
 
-    float constexpr sqr(float x)
+    void World::update(Window const & window, GpuFenceManager & fence_manager, FirstPersonCamera const & camera)
     {
-        return x * x;
-    }
-
-    bool sphereCubeIntersect(glm::vec3 const & cube_min, glm::vec3 const & cube_max, glm::vec4 const & sphere_pos_radius)
-    {
-        float dist_squared = sqr(sphere_pos_radius.w);
-        if      (sphere_pos_radius.x < cube_min.x) dist_squared -= sqr(sphere_pos_radius.x - cube_min.x);
-        else if (sphere_pos_radius.x > cube_max.x) dist_squared -= sqr(sphere_pos_radius.x - cube_max.x);
-        if      (sphere_pos_radius.y < cube_min.y) dist_squared -= sqr(sphere_pos_radius.y - cube_min.y);
-        else if (sphere_pos_radius.y > cube_max.y) dist_squared -= sqr(sphere_pos_radius.y - cube_max.y);
-        if      (sphere_pos_radius.z < cube_min.z) dist_squared -= sqr(sphere_pos_radius.z - cube_min.z);
-        else if (sphere_pos_radius.z > cube_max.z) dist_squared -= sqr(sphere_pos_radius.z - cube_max.z);
-        return dist_squared > 0;
-    }
-
-    void World::update(Window const & window, FirstPersonCamera const & camera)
-    {
-        if (m_raycast_active)
+        if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
         {
-            auto start = std::chrono::high_resolution_clock::now();
-            GLint result[1];
-            glGetSynciv(m_raycast_readback_sync, GL_SYNC_STATUS, sizeof(result), nullptr, result);
-            if (result[0] == GL_SIGNALED)
-            {
-                m_raycast_active = false;
-                if (m_hit_info_ptr[18])
-                {
-                    glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
-
-                    for (int i = 0; i < 18; ++i)
-                    {
-                        int x = i % 3 - 1, y = i / 9, z = i / 3 % 3 - 1;
-                        if (sphereCubeIntersect({ x, y, z }, glm::ivec3{ x, y, z } + 1, { m_hit_info_ptr[0], m_hit_info_ptr[1], m_hit_info_ptr[2], m_terraform_radius / m_points_per_axis + 0.1f })) // Intersection test in unit space
-                        {
-                            terraform({ m_hit_info_ptr[19] + x, m_hit_info_ptr[20] + y, m_hit_info_ptr[21] + z });
-                        }
-                    }
-                }
-                glDeleteSync(m_raycast_readback_sync);
-            }
-            //ENG_LOG_F("terraform total: %lld ns", (std::chrono::high_resolution_clock::now() - start).count());
-        } else
-        {
-            if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
-            {
-                castRay(camera);
-            }
+            castRay(fence_manager, camera);
         }
     }
 

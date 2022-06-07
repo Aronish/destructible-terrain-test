@@ -8,6 +8,7 @@
 #include "event/event.hpp"
 #include "first_person_camera.hpp"
 #include "graphics/asset.hpp"
+#include "graphics/fence_wrapper.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/texture.hpp"
 #include "graphics/vertex_array.hpp"
@@ -17,7 +18,6 @@
 
 namespace eng
 {
-
     class Application
     {
     private:
@@ -45,11 +45,14 @@ namespace eng
         } m_px_error_callback;
 
         physx::PxFoundation * m_px_foundation;
+        physx::PxPhysics * m_px_physics;
 
         Window m_window; // Has to be first due to OpenGL initialization
         AssetManager m_asset_manager;
+        GpuFenceManager m_gpu_fence_manager;
         FirstPersonCamera m_camera;
         World m_world;
+
         std::shared_ptr<Texture> m_crosshair_texture;
         std::shared_ptr<Shader> m_textured_quad_shader;
         GLuint m_crosshair_va;

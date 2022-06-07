@@ -35,6 +35,9 @@ namespace eng
         m_px_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_px_allocator_callback, m_px_error_callback);
         if (!m_px_foundation) ENG_LOG("Failed to initialize PxFoundation!");
 
+        m_px_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_px_foundation, physx::PxTolerancesScale());
+        if (!m_px_physics) ENG_LOG("Failed to initialize PxPhysics!");
+
         m_crosshair_texture = m_asset_manager.getTexture("res/textures/crosshair.png");
         m_textured_quad_shader = m_asset_manager.getShader("res/shaders/textured_quad.glsl");
 
@@ -69,7 +72,8 @@ namespace eng
 
     Application::~Application()
     {
-        m_px_foundation->release();
+        m_px_physics->release();
+        m_px_foundation->release(); // Release last
     }
 
     void Application::onEvent(Event const & event)
@@ -110,11 +114,12 @@ namespace eng
     void Application::update(float delta_time)
     {
         glfwPollEvents();
+        m_gpu_fence_manager.update();
         if (m_camera.update(delta_time, m_window))
         {
             m_world.onPlayerMoved(m_camera);
         }
-        if (!m_window.isCursorVisible()) m_world.update(m_window, m_camera);
+        if (!m_window.isCursorVisible()) m_world.update(m_window, m_gpu_fence_manager, m_camera);
     }
 
     WorldGenerationConfig static config;

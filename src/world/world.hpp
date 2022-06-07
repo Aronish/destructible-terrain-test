@@ -8,6 +8,7 @@
 #include "event/key_event.hpp"
 #include "first_person_camera.hpp"
 #include "graphics/asset.hpp"
+#include "graphics/fence_wrapper.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
 #include "world/chunk.hpp"
@@ -47,8 +48,6 @@ namespace eng
         GLuint m_dispatch_indirect_buffer;
 
         float * m_hit_info_ptr;
-        bool m_raycast_active{};
-        GLsync m_raycast_readback_sync;
 
         ChunkPool m_chunk_pool;
 
@@ -58,7 +57,7 @@ namespace eng
         void onRendererInit(AssetManager & asset_manager);
         void initDynamicBuffers();
 
-        void castRay(FirstPersonCamera const & camera);
+        void castRay(GpuFenceManager & fence_manager, FirstPersonCamera const & camera);
         void chunkRayIntersection(glm::ivec3 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
 
         void onKeyPressed(KeyPressedEvent const & event);
@@ -69,7 +68,7 @@ namespace eng
         void generateChunks();
         void terraform(glm::ivec3 const & chunk);
 
-        void update(Window const & window, FirstPersonCamera const & camera);
+        void update(Window const & window, GpuFenceManager & fence_manager, FirstPersonCamera const & camera);
         void render(FirstPersonCamera const & camera);
         
         void updateGenerationConfig(WorldGenerationConfig const & config);
