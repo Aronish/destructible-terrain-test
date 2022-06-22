@@ -2,18 +2,25 @@ cmake_minimum_required(VERSION 3.23.2)
 
 project(engineering_game)
 
-# Compiler flags and predefined macros
-if ("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
-    set(CMAKE_CXX_FLAGS "/EHsc /Zi /W4 /wd4706 /arch:AVX2")
-    set(CMAKE_EXE_LINKER_FLAGS "/DEBUG:FULL")
-    add_compile_definitions(ENG_DEBUG)
-    add_compile_definitions(ENG_LOG_ENABLED)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
 endif()
 
-if ("${CMAKE_BUILD_TYPE}" STREQUAL Release)
-    set(CMAKE_CXX_FLAGS "/EHsc /O2 /W4 /wd4706 /arch:AVX2")
-    add_compile_definitions(ENG_LOG_ENABLED)
+# Compiler flags and predefined macros
+set(CMAKE_CXX_FLAGS "/EHsc /W4 /wd4706 /arch:AVX2")
+set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob3")
+
+set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/DEBUG:FULL")
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(PHYSX_CONFIG "debug")
+elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    set(PHYSX_CONFIG "checked")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(PHYSX_CONFIG "release")
 endif()
+
+add_compile_definitions(_DLL $<$<CONFIG:Debug>:ENG_DEBUG> $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:ENG_LOG_ENABLED> $<$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>:NDEBUG>)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -23,17 +30,16 @@ add_subdirectory(src)
 
 # Resources
 message("Copying resources")
-function(copy_resource resource_folder)
-    file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/${resource_folder}/*")
+function(copy_resource resource_folder file_type)
+    file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/${resource_folder}/*${file_type}")
     foreach(resource ${resources})
         get_filename_component(outputFileName ${resource} NAME)
         configure_file(${resource} ${CMAKE_CURRENT_BINARY_DIR}/${resource_folder}/${outputFileName} COPYONLY)
     endforeach()
-endfunction(copy_resource)
+endfunction()
 
-copy_resource("res/shaders")
-copy_resource("res/textures")
-copy_resource("lib/physx/bin/release")
+copy_resource("res/shaders" "")
+copy_resource("res/textures" "")
 
 ## Libraries
 # GLFW
@@ -68,32 +74,23 @@ target_link_libraries(engineering_game imgui)
 
 # physx
 message("[LINK]: PhysX")
+copy_resource("lib/physx/bin/${PHYSX_CONFIG}" "lib")
 target_include_directories(engineering_game PRIVATE lib/physx/include/)
 target_include_directories(engineering_game PRIVATE lib/physx/pxshared/include/)
-target_link_libraries(engineering_game lib/physx/bin/release/PhysX_64)
-target_link_libraries(engineering_game lib/physx/bin/release/PhysXCommon_64)
-target_link_libraries(engineering_game lib/physx/bin/release/PhysXFoundation_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysX_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXCommon_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXFoundation_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXCooking_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXPvdSDK_static_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXExtensions_static_64)
 
-# physx pre-build dll copy
-message("Copying DLLs")
-function(copy_dlls lib_path)
-    file(GLOB physx_dlls ${lib_path}/*.dll)
-    foreach(physx_dll ${physx_dlls})
-        add_custom_command(
-            TARGET engineering_game PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${physx_dll}
-                $<TARGET_FILE_DIR:engineering_game>
-        )
-    endforeach()
-endfunction()
-
-if ("${CMAKE_BUILD_TYPE}" STREQUAL Debug)
-    message("[PhysX]: checked")
-    copy_dlls(${CMAKE_CURRENT_SOURCE_DIR}/lib/physx/bin/checked)
-endif()
-
-if ("${CMAKE_BUILD_TYPE}" STREQUAL Release)
-    message("[PhysX]: release")
-    copy_dlls(${CMAKE_CURRENT_SOURCE_DIR}/lib/physx/bin/release)
-endif()
+# physx pre-build library copying
+file(GLOB physx_dlls ${CMAKE_CURRENT_SOURCE_DIR}/lib/physx/bin/${PHYSX_CONFIG}/*.dll)
+foreach(physx_dll ${physx_dlls})
+    add_custom_command(
+        TARGET engineering_game PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${physx_dll}
+            $<TARGET_FILE_DIR:engineering_game>
+    )
+endforeach()

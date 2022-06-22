@@ -6,17 +6,24 @@
 
 namespace eng
 {
-    Chunk::Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    Chunk::Chunk(GameSystem & game_system, int unsigned max_triangle_count, int unsigned points_per_chunk_axis) : r_game_system(game_system)
     {
-        m_mesh_vb = asset_manager.createBuffer();
-        m_density_distribution_ss = asset_manager.createBuffer();
+        m_mesh_vb = r_game_system.getAssetManager().createBuffer();
+        m_density_distribution_ss = r_game_system.getAssetManager().createBuffer();
         setMeshConfig(max_triangle_count, points_per_chunk_axis);
 
         int unsigned constexpr initial_indirect_config[] = { 0, 1, 0, 0, 0, 0 };
-        m_draw_indirect_buffer = asset_manager.createBuffer();
+        m_draw_indirect_buffer = r_game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_draw_indirect_buffer, sizeof(initial_indirect_config), &initial_indirect_config, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
+        m_static_rigid_body = r_game_system.getPhysx()->createRigidStatic(physx::PxTransform(physx::PxIdentity));
+
         m_next_unused = nullptr;
+    }
+
+    void Chunk::releasePhysics()
+    {
+        m_static_rigid_body->release();
     }
     
     void Chunk::setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
@@ -67,15 +74,27 @@ namespace eng
         return m_position;
     }
     
+    physx::PxRigidStatic * Chunk::getStaticRigidBody() const
+    {
+        return m_static_rigid_body;
+    }
+    
     //ChunkPool
 
-    ChunkPool::ChunkPool(AssetManager & asset_manager) : m_asset_manager(asset_manager)
+    ChunkPool::ChunkPool(GameSystem & game_system) : r_game_system(game_system)
     {
     }
 
-    void ChunkPool::initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    ChunkPool::~ChunkPool()
     {
-        m_asset_manager = asset_manager;
+        for (auto & chunk : m_chunks)
+        {
+            chunk.releasePhysics();
+        }
+    }
+
+    void ChunkPool::initialize(int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    {
         setMeshConfig(max_triangle_count, points_per_chunk_axis);
         setPoolSize(initial_size);
     }
@@ -98,7 +117,7 @@ namespace eng
         // Allocate all chunks and setup free list
         for (int unsigned i = 0; i < size; ++i)
         {
-            Chunk & chunk = m_chunks.emplace_back(m_asset_manager, m_max_triangle_count, m_points_per_chunk_axis);
+            Chunk & chunk = m_chunks.emplace_back(r_game_system, m_max_triangle_count, m_points_per_chunk_axis);
             if (i > 0) m_chunks[i - 1].deactivate(&chunk);
         }
         m_first_unused = &m_chunks[0];

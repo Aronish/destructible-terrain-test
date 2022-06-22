@@ -3,8 +3,10 @@
 #include <memory>
 
 #include <glm/glm.hpp>
+#include <PxPhysicsAPI.h>
 
 #include "first_person_camera.hpp"
+#include "game_system.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
 
@@ -14,7 +16,9 @@ namespace eng
     {
     private:
         GLuint m_mesh_vb, m_density_distribution_ss, m_draw_indirect_buffer;
-        bool m_active = false, m_shit = false;
+        physx::PxRigidStatic * m_static_rigid_body;
+        bool m_active = false;
+        GameSystem & r_game_system;
         union
         {
             glm::ivec3 m_position;
@@ -22,7 +26,8 @@ namespace eng
         };
 
     public:
-        Chunk(AssetManager & asset_manager, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        Chunk(GameSystem & game_system, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        void releasePhysics();
         void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
 
         void activate(glm::ivec3 position);
@@ -36,6 +41,8 @@ namespace eng
         GLuint getMeshVB() const;
         GLuint getDensityDistributionBuffer() const;
         GLuint getDrawIndirectBuffer() const;
+
+        physx::PxRigidStatic * getStaticRigidBody() const;
     };
 
     class ChunkPool
@@ -45,10 +52,11 @@ namespace eng
         Chunk * m_first_unused;
         int unsigned m_max_triangle_count, m_points_per_chunk_axis;
 
-        AssetManager & m_asset_manager;
+        GameSystem & r_game_system;
     public:
-        ChunkPool(AssetManager & asset_manager);
-        void initialize(AssetManager & asset_manager, int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        ChunkPool(GameSystem & game_system);
+        ~ChunkPool();
+        void initialize(int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
         void setPoolSize(int unsigned size);
         bool activateChunk(Chunk ** out_chunk, glm::ivec3 position);

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "logger.hpp"
 
 #include "graphics/asset.hpp"
@@ -26,6 +28,16 @@ namespace eng
         glCreateBuffers(1, &buffer);
         m_buffers.push_back(buffer);
         return buffer;
+    }
+
+    void AssetManager::deleteBuffer(GLuint buffer)
+    {
+        auto index = std::find(m_buffers.begin(), m_buffers.end(), buffer);
+        if (index != m_buffers.end())
+        {
+            glDeleteBuffers(1, &buffer);
+            m_buffers.erase(index);
+        }
     }
     
     GLuint AssetManager::createVertexArray()

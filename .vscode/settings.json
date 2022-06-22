@@ -72,6 +72,9 @@
         "xtree": "cpp",
         "mutex": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "charconv": "cpp",
+        "forward_list": "cpp",
+        "optional": "cpp"
     }
 }

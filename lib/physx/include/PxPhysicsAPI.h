@@ -40,7 +40,7 @@ want to use a single #include file.
 
 Alternatively, one can instead directly #include a subset of the below files.
 */
-
+#pragma warning(push, 0)
 // Foundation SDK 
 #include "foundation/Px.h"
 #include "foundation/PxAllocatorCallback.h"
@@ -214,5 +214,7 @@ Alternatively, one can instead directly #include a subset of the below files.
 #include "pvd/PxPvdSceneClient.h"
 #include "pvd/PxPvd.h"
 #include "pvd/PxPvdTransport.h"
+
+#pragma warning(pop)
 /** @} */
 #endif

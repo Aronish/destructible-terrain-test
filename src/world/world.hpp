@@ -4,11 +4,13 @@
 #include <unordered_map>
 
 #include <glad/glad.h>
+#include <PxPhysicsAPI.h>
 
 #include "event/key_event.hpp"
 #include "first_person_camera.hpp"
+#include "game_system.hpp"
 #include "graphics/asset.hpp"
-#include "graphics/fence_wrapper.hpp"
+#include "graphics/gpu_synchronizer.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
 #include "world/chunk.hpp"
@@ -32,8 +34,10 @@ namespace eng
     private:
         int m_points_per_axis = 16, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         glm::ivec3 m_last_chunk_coords{};
-        int m_render_distance = 4;
+        int m_render_distance = 2;
         float m_threshold = -0.2f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f, m_create_destroy_multiplier = 1.0f;
+
+        GameSystem & r_game_system;
 
         std::shared_ptr<Shader> m_density_generator;
         std::shared_ptr<Shader> m_marching_cubes;
@@ -51,13 +55,15 @@ namespace eng
 
         ChunkPool m_chunk_pool;
 
-    public:
-        World(AssetManager & asset_manager);
+        physx::PxScene * m_scene;
 
-        void onRendererInit(AssetManager & asset_manager);
+    public:
+        World(GameSystem & game_system);
+        ~World();
+
         void initDynamicBuffers();
 
-        void castRay(GpuFenceManager & fence_manager, FirstPersonCamera const & camera);
+        void castRay(FirstPersonCamera const & camera);
         void chunkRayIntersection(glm::ivec3 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
 
         void onKeyPressed(KeyPressedEvent const & event);
@@ -68,7 +74,7 @@ namespace eng
         void generateChunks();
         void terraform(glm::ivec3 const & chunk);
 
-        void update(Window const & window, GpuFenceManager & fence_manager, FirstPersonCamera const & camera);
+        void update(float delta_time, Window const & window, FirstPersonCamera const & camera);
         void render(FirstPersonCamera const & camera);
         
         void updateGenerationConfig(WorldGenerationConfig const & config);

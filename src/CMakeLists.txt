@@ -2,6 +2,7 @@ target_sources(engineering_game
     PRIVATE
         application.cpp application.hpp
         first_person_camera.cpp first_person_camera.hpp
+        game_system.hpp game_system.cpp
         logger.hpp
         main.cpp
         window.cpp window.hpp

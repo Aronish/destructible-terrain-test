@@ -17,7 +17,7 @@
 namespace eng
 {
     Application::Application(unsigned int width, unsigned int height, char const * title, bool maximized)
-        : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height), m_world(m_asset_manager)
+        : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height), m_world(m_game_system)
     {
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
@@ -32,14 +32,8 @@ namespace eng
         ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
         ImGui_ImplOpenGL3_Init("#version 460 core");
 
-        m_px_foundation = PxCreateFoundation(PX_PHYSICS_VERSION, m_px_allocator_callback, m_px_error_callback);
-        if (!m_px_foundation) ENG_LOG("Failed to initialize PxFoundation!");
-
-        m_px_physics = PxCreatePhysics(PX_PHYSICS_VERSION, *m_px_foundation, physx::PxTolerancesScale());
-        if (!m_px_physics) ENG_LOG("Failed to initialize PxPhysics!");
-
-        m_crosshair_texture = m_asset_manager.getTexture("res/textures/crosshair.png");
-        m_textured_quad_shader = m_asset_manager.getShader("res/shaders/textured_quad.glsl");
+        m_crosshair_texture = m_game_system.getAssetManager().getTexture("res/textures/crosshair.png");
+        m_textured_quad_shader = m_game_system.getAssetManager().getShader("res/shaders/textured_quad.glsl");
 
         int quad_indices[] = 
         {
@@ -56,24 +50,17 @@ namespace eng
             crosshair_width,    crosshair_height,   1.0f, 1.0f
         };
 
-        m_crosshair_ib = m_asset_manager.createBuffer();
+        m_crosshair_ib = m_game_system.getAssetManager().createBuffer();
 
-        m_crosshair_vb = m_asset_manager.createBuffer();
+        m_crosshair_vb = m_game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_crosshair_vb, sizeof(quad_vertices), quad_vertices, 0);
 
-        m_crosshair_va = m_asset_manager.createVertexArray();
+        m_crosshair_va = m_game_system.getAssetManager().createVertexArray();
         VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
         VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
         m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
-        m_world.onRendererInit(m_asset_manager);
         m_world.generateChunks();
-    }
-
-    Application::~Application()
-    {
-        m_px_physics->release();
-        m_px_foundation->release(); // Release last
     }
 
     void Application::onEvent(Event const & event)
@@ -114,12 +101,12 @@ namespace eng
     void Application::update(float delta_time)
     {
         glfwPollEvents();
-        m_gpu_fence_manager.update();
+        m_game_system.getGpuSynchronizer().update();
         if (m_camera.update(delta_time, m_window))
         {
             m_world.onPlayerMoved(m_camera);
         }
-        if (!m_window.isCursorVisible()) m_world.update(m_window, m_gpu_fence_manager, m_camera);
+        if (!m_window.isCursorVisible()) m_world.update(delta_time, m_window, m_camera);
     }
 
     WorldGenerationConfig static config;

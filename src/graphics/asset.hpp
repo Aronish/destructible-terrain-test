@@ -25,6 +25,8 @@ namespace eng
         std::shared_ptr<Texture> & getTexture(char const * key);
 
         GLuint createBuffer();
+        void deleteBuffer(GLuint buffer);
+
         GLuint createVertexArray();
     };
 }

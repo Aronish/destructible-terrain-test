@@ -2,6 +2,8 @@
 #include <chrono>
 #include <cmath>
 
+#include "glm/gtc/type_ptr.hpp"
+
 #include "world/world.hpp"
 
 namespace eng
@@ -27,12 +29,8 @@ namespace eng
         else if (sphere_pos_radius.z > cube_max.z) dist_squared -= sqr(sphere_pos_radius.z - cube_max.z);
         return dist_squared > 0;
     }
-    
-    World::World(AssetManager & asset_manager) : m_chunk_pool(asset_manager)
-    {
-    }
 
-    void World::onRendererInit(AssetManager & asset_manager)
+    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system)
     {
         int constexpr tri_table[256][16] =
         {
@@ -294,33 +292,49 @@ namespace eng
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }
         };
 
-        m_density_generator = asset_manager.getShader("res/shaders/generate_points.glsl");
-        m_marching_cubes = asset_manager.getShader("res/shaders/marching_cubes.glsl");
-        m_chunk_renderer = asset_manager.getShader("res/shaders/light_test.glsl");
-        m_mesh_ray_intersect = asset_manager.getShader("res/shaders/mesh_ray_intersect.glsl");
-        m_ray_mesh_command = asset_manager.getShader("res/shaders/ray_mesh_command.glsl");
-        m_terraform = asset_manager.getShader("res/shaders/terraform.glsl");
+        m_density_generator = game_system.getAssetManager().getShader("res/shaders/generate_points.glsl");
+        m_marching_cubes = game_system.getAssetManager().getShader("res/shaders/marching_cubes.glsl");
+        m_chunk_renderer = game_system.getAssetManager().getShader("res/shaders/light_test.glsl");
+        m_mesh_ray_intersect = game_system.getAssetManager().getShader("res/shaders/mesh_ray_intersect.glsl");
+        m_ray_mesh_command = game_system.getAssetManager().getShader("res/shaders/ray_mesh_command.glsl");
+        m_terraform = game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
 
-        m_generation_config_u = asset_manager.createBuffer();
+        m_generation_config_u = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_generation_config_u, sizeof(WorldGenerationConfig), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        m_triangulation_table_ss = asset_manager.createBuffer();
+        m_triangulation_table_ss = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_triangulation_table_ss, sizeof(tri_table), tri_table, 0);
 
-        m_ray_hit_data_ss = asset_manager.createBuffer();
+        m_ray_hit_data_ss = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_ray_hit_data_ss, sizeof(float) * RAY_HIT_DATA_SIZE, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-        m_hit_info_ptr = reinterpret_cast<float *>(glMapNamedBufferRange(m_ray_hit_data_ss, 0, sizeof(float) * RAY_HIT_DATA_SIZE, GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT));
+        m_hit_info_ptr = reinterpret_cast<float *>(glMapNamedBuffer(m_ray_hit_data_ss, GL_READ_WRITE));
 
-        m_chunk_va = asset_manager.createVertexArray();
+        m_chunk_va = game_system.getAssetManager().createVertexArray();
         VertexArray::setVertexArrayFormat(m_chunk_va, VertexDataLayout::POSITION_NORMAL_3F);
 
-        m_dispatch_indirect_buffer = asset_manager.createBuffer();
+        m_dispatch_indirect_buffer = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_dispatch_indirect_buffer, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        m_chunk_pool.initialize(asset_manager, (2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2, m_max_triangle_count, m_points_per_axis);
+        physx::PxSceneDesc scene_desc{game_system.getPhysx()->getTolerancesScale()};
+        scene_desc.gravity = physx::PxVec3{ 0.0f, -9.81f, 0.0f };
+        if (!scene_desc.cpuDispatcher) scene_desc.cpuDispatcher = r_game_system.getPhysxCpuDispatcher();
+        if (!scene_desc.filterShader) scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
+        m_scene = game_system.getPhysx()->createScene(scene_desc);
+        if (!m_scene) ENG_LOG("Failed to create world scene!");
+
+        m_chunk_pool.initialize((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2, m_max_triangle_count, m_points_per_axis);
+        for (auto const & chunk : m_chunk_pool)
+        {
+            m_scene->addActor(*chunk.getStaticRigidBody());
+        }
 
         initDynamicBuffers();
         updateGenerationConfig(WorldGenerationConfig{});
+    }
+    
+    World::~World()
+    {
+        m_scene->release();
     }
 
     void World::initDynamicBuffers()
@@ -328,7 +342,7 @@ namespace eng
         m_chunk_pool.setMeshConfig(m_max_triangle_count, m_points_per_axis);
     }
 
-    void World::castRay(GpuFenceManager & fence_manager, FirstPersonCamera const & camera)
+    void World::castRay(FirstPersonCamera const & camera)
     {
         int dx = sign(camera.getDirection().x), dy = sign(camera.getDirection().y), dz = sign(camera.getDirection().z);
 
@@ -376,7 +390,7 @@ namespace eng
                 }
             }
         }
-        fence_manager.setBarrier([this, sphereCubeIntersect = sphereCubeIntersect]()
+        r_game_system.getGpuSynchronizer().setBarrier([this, sphereCubeIntersect = sphereCubeIntersect]()
         {
             if (m_hit_info_ptr[18])
             {
@@ -509,7 +523,15 @@ namespace eng
                         glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), initial_indirect_config);
                         bindNeighborChunks(4, has_neighbors, chunk_coordinate);
                         m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
-                        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+                        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+                        r_game_system.getGpuSynchronizer().readBufferWhenReady(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), [](std::vector<float> const & data)
+                        {
+                            ENG_LOG("");
+                            for (auto const & d : data)
+                            {
+                                ENG_LOG_F("%f", d);
+                            }
+                        });
                     }
                 }
             }
@@ -562,12 +584,14 @@ namespace eng
     }
 */
 
-    void World::update(Window const & window, GpuFenceManager & fence_manager, FirstPersonCamera const & camera)
+    void World::update(float delta_time, Window const & window, FirstPersonCamera const & camera)
     {
+        m_scene->simulate(delta_time);
         if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
         {
-            castRay(fence_manager, camera);
+            castRay(camera);
         }
+        m_scene->fetchResults(true);
     }
 
     void World::render(FirstPersonCamera const & camera)
