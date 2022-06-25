@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "graphics/vertex_buffer_layout.hpp"
 #include "logger.hpp"
 #include "world/world.hpp"
@@ -6,7 +8,18 @@
 
 namespace eng
 {
-    Chunk::Chunk(GameSystem & game_system, int unsigned max_triangle_count, int unsigned points_per_chunk_axis) : r_game_system(game_system)
+    void Chunk::generateIndices(size_t count)
+    {
+        s_indices.clear();
+        s_indices.resize(count);
+        std::generate(s_indices.begin(), s_indices.end(), [n = 0]() mutable
+        {
+            return n++;
+        });
+        s_indices.shrink_to_fit();
+    }
+
+    Chunk::Chunk(GameSystem & game_system, size_t max_triangle_count, size_t points_per_chunk_axis) : r_game_system(game_system)
     {
         m_mesh_vb = r_game_system.getAssetManager().createBuffer();
         m_density_distribution_ss = r_game_system.getAssetManager().createBuffer();
@@ -26,16 +39,70 @@ namespace eng
         m_static_rigid_body->release();
     }
     
-    void Chunk::setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    void Chunk::setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis)
     {
         glNamedBufferData(m_mesh_vb, max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_COPY);
         glNamedBufferData(m_density_distribution_ss, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
     }
 
-    void Chunk::activate(glm::ivec3 position)
+    void Chunk::setMeshCollider(std::vector<float> const & mesh, physx::PxMaterial * material, float chunk_size)
+    {
+        if (int shape_count = m_static_rigid_body->getNbShapes() > 0)
+        {
+            std::vector<physx::PxShape *> shapes(shape_count);
+            m_static_rigid_body->getShapes(shapes.data(), static_cast<physx::PxU32>(shapes.size() * sizeof(physx::PxShape *)));
+            for (auto shape_ptr : shapes) m_static_rigid_body->detachShape(*shape_ptr);
+        }
+
+        if (m_vertex_count == 0) return;
+        // Cooking setup
+        //physx::PxTolerancesScale scale;
+        //physx::PxCookingParams params(scale);
+        //params.meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
+        //params.meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eDISABLE_ACTIVE_EDGES_PRECOMPUTE;
+        //params.midphaseDesc.mBVH33Desc.meshCookingHint = physx::PxMeshCookingHint::Enum::eCOOKING_PERFORMANCE;
+        //r_game_system.getPhysxCooking()->setParams(params);
+
+        // Triangle mesh
+        physx::PxTriangleMeshDesc mesh_desc;
+        mesh_desc.points.count = m_vertex_count;
+        mesh_desc.points.stride = 2 * sizeof(physx::PxVec3);
+        mesh_desc.points.data = mesh.data();
+        mesh_desc.triangles.count = m_vertex_count;
+        mesh_desc.triangles.stride = 3 * sizeof(physx::PxU32);
+        auto sub_indices = std::vector<uint32_t>(s_indices.begin(), s_indices.begin() + mesh.size() / 18);
+        mesh_desc.triangles.data = sub_indices.data();
+
+        physx::PxDefaultMemoryOutputStream write_buffer;
+        physx::PxTriangleMeshCookingResult::Enum result;
+        bool status = r_game_system.getPhysxCooking()->cookTriangleMesh(mesh_desc, write_buffer, &result);
+        if (!status) ENG_LOG_F("Failed to cook triangle mesh of chunk at (%d, %d, %d)", m_position.x, m_position.y, m_position.z);
+        physx::PxDefaultMemoryInputData read_buffer(write_buffer.getData(), write_buffer.getSize());
+        physx::PxTriangleMesh * triangle_mesh = r_game_system.getPhysx()->createTriangleMesh(read_buffer);
+
+        physx::PxMeshScale scale({ chunk_size });
+        physx::PxTriangleMeshGeometry geometry(triangle_mesh, scale);
+
+        /*
+        bool result = r_game_system.getPhysxCooking()->validateTriangleMesh(mesh_desc);
+        ENG_LOG_F("%d", result);
+        physx::PxTriangleMesh * triangle_mesh = r_game_system.getPhysxCooking()->createTriangleMesh(mesh_desc, r_game_system.getPhysx()->getPhysicsInsertionCallback());
+        */
+
+        physx::PxRigidActorExt::createExclusiveShape(*m_static_rigid_body, geometry, *material);
+        triangle_mesh->release();
+    }
+
+    void Chunk::setMeshInfo(int unsigned vertex_count)
+    {
+        m_vertex_count = vertex_count;
+    }
+
+    void Chunk::activate(glm::ivec3 position, float chunk_size)
     {
         m_position = position;
         m_active = true;
+        m_static_rigid_body->setGlobalPose(physx::PxTransform(physx::PxVec3{ static_cast<float>(position.x), static_cast<float>(position.y), static_cast<float>(position.z) } * chunk_size));
     }
 
     void Chunk::deactivate(Chunk * next_unused)
@@ -93,29 +160,30 @@ namespace eng
         }
     }
 
-    void ChunkPool::initialize(int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    void ChunkPool::initialize(size_t initial_size, size_t max_triangle_count, size_t points_per_chunk_axis)
     {
         setMeshConfig(max_triangle_count, points_per_chunk_axis);
         setPoolSize(initial_size);
     }
 
-    void ChunkPool::setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis)
+    void ChunkPool::setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis)
     {
         m_max_triangle_count = max_triangle_count;
         m_points_per_chunk_axis = points_per_chunk_axis;
 
+        Chunk::generateIndices(3 * max_triangle_count);
         for (auto & chunk : m_chunks)
         {
             chunk.setMeshConfig(max_triangle_count, points_per_chunk_axis);
         }
     }
 
-    void ChunkPool::setPoolSize(int unsigned size)
+    void ChunkPool::setPoolSize(size_t size)
     {
         m_chunks.clear();
         m_chunks.reserve(size);
         // Allocate all chunks and setup free list
-        for (int unsigned i = 0; i < size; ++i)
+        for (size_t i = 0; i < size; ++i)
         {
             Chunk & chunk = m_chunks.emplace_back(r_game_system, m_max_triangle_count, m_points_per_chunk_axis);
             if (i > 0) m_chunks[i - 1].deactivate(&chunk);
@@ -124,12 +192,12 @@ namespace eng
         m_chunks[size - 1].deactivate(nullptr);
     }
 
-    bool ChunkPool::activateChunk(Chunk ** out_chunk, glm::ivec3 position)
+    bool ChunkPool::activateChunk(Chunk ** out_chunk, glm::ivec3 position, float chunk_size)
     {
         if (m_first_unused == nullptr) return false;
         *out_chunk = m_first_unused;
         m_first_unused = (*out_chunk)->getNextUnused();
-        (*out_chunk)->activate(position);
+        (*out_chunk)->activate(position, chunk_size);
         return true;
     }
 

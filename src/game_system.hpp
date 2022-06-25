@@ -39,6 +39,7 @@ namespace eng
         physx::PxPhysics * m_px_physics;
         physx::PxCooking * m_px_cooking;
         physx::PxPvd * m_px_pvd;
+        physx::PxPvdTransport * m_pvd_transport;
         physx::PxCpuDispatcher * m_px_cpu_dispatcher;
         AssetManager m_asset_manager;
         GpuSynchronizer m_gpu_synchronizer;

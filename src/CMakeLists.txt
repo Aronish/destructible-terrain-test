@@ -5,6 +5,7 @@ target_sources(engineering_game
         game_system.hpp game_system.cpp
         logger.hpp
         main.cpp
+        player.cpp player.hpp
         window.cpp window.hpp
 )
 

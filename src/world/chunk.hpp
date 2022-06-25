@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <PxPhysicsAPI.h>
@@ -15,9 +16,17 @@ namespace eng
     class Chunk
     {
     private:
+        std::vector<uint32_t> inline static s_indices{};
+
+    public:
+        static void generateIndices(size_t count);
+
+    private:
         GLuint m_mesh_vb, m_density_distribution_ss, m_draw_indirect_buffer;
+        int unsigned m_vertex_count{};
         physx::PxRigidStatic * m_static_rigid_body;
         bool m_active = false;
+
         GameSystem & r_game_system;
         union
         {
@@ -26,11 +35,14 @@ namespace eng
         };
 
     public:
-        Chunk(GameSystem & game_system, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
-        void releasePhysics();
-        void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
+        Chunk(GameSystem & game_system, size_t max_triangle_count, size_t points_per_chunk_axis);
 
-        void activate(glm::ivec3 position);
+        void releasePhysics();
+        void setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis);
+        void setMeshCollider(std::vector<float> const & mesh, physx::PxMaterial * material, float chunk_size);
+        void setMeshInfo(int unsigned vertex_count);
+
+        void activate(glm::ivec3 position, float chunk_size);
         void deactivate(Chunk * chunk);
 
         glm::ivec3 const & getPosition() const;
@@ -49,17 +61,17 @@ namespace eng
     {
     private:
         std::vector<Chunk> m_chunks;
-        Chunk * m_first_unused;
-        int unsigned m_max_triangle_count, m_points_per_chunk_axis;
+        Chunk * m_first_unused{};
+        size_t m_max_triangle_count{}, m_points_per_chunk_axis{};
 
         GameSystem & r_game_system;
     public:
         ChunkPool(GameSystem & game_system);
         ~ChunkPool();
-        void initialize(int unsigned initial_size, int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
-        void setMeshConfig(int unsigned max_triangle_count, int unsigned points_per_chunk_axis);
-        void setPoolSize(int unsigned size);
-        bool activateChunk(Chunk ** out_chunk, glm::ivec3 position);
+        void initialize(size_t initial_size, size_t max_triangle_count, size_t points_per_chunk_axis);
+        void setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis);
+        void setPoolSize(size_t size);
+        bool activateChunk(Chunk ** out_chunk, glm::ivec3 position, float chunk_size);
         void deactivateChunk(Chunk * chunk);
         bool getChunkAt(glm::ivec3 const & position, std::vector<Chunk>::iterator & out_chunk);
         bool hasChunkAt(glm::ivec3 const & position);

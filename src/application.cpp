@@ -59,7 +59,6 @@ namespace eng
         VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
         VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
-        m_camera.setPosition({ 0.0f, 5.0f, 0.0f });
         m_world.generateChunks();
     }
 
@@ -72,10 +71,15 @@ namespace eng
         }
         EventDispatcher::dispatch<KeyPressedEvent>(event, [&](KeyPressedEvent const & event)
         {
-            if (event.m_key_code == GLFW_KEY_E)
+            switch (event.m_key_code)
             {
+            case GLFW_KEY_E:
                 m_window.setCursorVisibility(!m_window.isCursorVisible());
                 m_camera.setCursorPosition(event.m_window.getCursorPosition());
+                break;
+            case GLFW_KEY_F:
+                m_window.setFullscreen(!m_window.isFullscreen());
+                break;
             }
             m_world.onKeyPressed(event);
         });
@@ -102,10 +106,6 @@ namespace eng
     {
         glfwPollEvents();
         m_game_system.getGpuSynchronizer().update();
-        if (m_camera.update(delta_time, m_window))
-        {
-            m_world.onPlayerMoved(m_camera);
-        }
         if (!m_window.isCursorVisible()) m_world.update(delta_time, m_window, m_camera);
     }
 

@@ -7,7 +7,7 @@
 namespace eng
 {
     Window::Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback)
-        : m_width(width), m_height(height), m_user_pointer(std::move(event_callback), *this)
+        : m_width(width), m_height(height), m_init_width(width), m_init_height(height), m_user_pointer(std::move(event_callback), *this)
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
 #ifdef ENG_DEBUG
@@ -22,12 +22,12 @@ namespace eng
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
 
-        GLFWvidmode const * video_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        m_video_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 
         m_window_handle = glfwCreateWindow(width, height, title, nullptr, nullptr);
         if (!m_window_handle) ENG_LOG("[GLFW]: Window could not be created!");
 
-        if (!maximized) glfwSetWindowPos(m_window_handle, (video_mode->width - width) / 2, (video_mode->height - height) / 2);
+        if (!maximized) glfwSetWindowPos(m_window_handle, (m_video_mode->width - width) / 2, (m_video_mode->height - height) / 2);
         
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -50,7 +50,7 @@ namespace eng
         // Event Callbacks
         glfwSetKeyCallback(m_window_handle, [](GLFWwindow * window_handle, int key, int, int action, int)
         {
-            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            auto const & user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             switch (action)
             {
                 case GLFW_PRESS:
@@ -68,7 +68,7 @@ namespace eng
 
         glfwSetMouseButtonCallback(m_window_handle, [](GLFWwindow * window_handle, int button, int action, int)
         {
-            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            auto const & user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             switch (action)
             {
                 case GLFW_PRESS:
@@ -86,13 +86,13 @@ namespace eng
 
         glfwSetScrollCallback(m_window_handle, [](GLFWwindow * window_handle, double x_offset, double y_offset)
         {
-            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            auto const & user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             user_pointer.m_event_callback(MouseScrolledEvent(x_offset, y_offset, user_pointer.m_window));
         });
 
         glfwSetCursorPosCallback(m_window_handle, [](GLFWwindow * window_handle, double x_pos, double y_pos)
         {
-            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            auto const & user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             user_pointer.m_event_callback(MouseMovedEvent(x_pos, y_pos, user_pointer.m_window));
             user_pointer.m_window.m_mouse_x = x_pos;
             user_pointer.m_window.m_mouse_y = y_pos;
@@ -100,7 +100,7 @@ namespace eng
 
         glfwSetFramebufferSizeCallback(m_window_handle, [](GLFWwindow * window_handle, int width, int height)
         {
-            auto user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
+            auto const & user_pointer = *static_cast<UserPointer*>(glfwGetWindowUserPointer(window_handle));
             user_pointer.m_window.setSize(width, height);
             user_pointer.m_event_callback(WindowResizedEvent(width, height, user_pointer.m_window));
         });
@@ -127,6 +127,24 @@ namespace eng
     int Window::getHeight() const
     {
         return m_height;
+    }
+
+    void Window::setFullscreen(bool fullscreen)
+    {
+        m_fullscreen = fullscreen;
+        if (fullscreen)
+        {
+            glfwSetWindowMonitor(m_window_handle, glfwGetPrimaryMonitor(), 0, 0, m_video_mode->width, m_video_mode->height, 60);
+        }
+        else
+        {
+            glfwSetWindowMonitor(m_window_handle, 0, m_video_mode->width / 2 - m_init_width / 2, m_video_mode->height / 2 - m_init_height / 2, m_init_width, m_init_height, 60);
+        }
+    }
+
+    bool Window::isFullscreen() const
+    {
+        return m_fullscreen;
     }
 
     void Window::setTitle(char const * title) const

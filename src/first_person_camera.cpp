@@ -14,43 +14,6 @@ namespace eng
         calculateProjectionMatrix();
     }
 
-    bool FirstPersonCamera::update(float delta_time, Window const & window)
-    {
-        bool moved = false;
-        float speed = glfwGetKey(window.getWindowHandle(), GLFW_KEY_LEFT_SHIFT) ? MOVEMENT_SPEED * 2.0f : MOVEMENT_SPEED;
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_W))
-        {
-            addPosition(m_direction * delta_time * speed);
-            moved = true;
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S))
-        {
-            addPosition(m_direction * -delta_time * speed);
-            moved = true;
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D))
-        {
-            addPosition(m_right * delta_time * speed);
-            moved = true;
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A))
-        {
-            addPosition(m_right * -delta_time * speed);
-            moved = true;
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
-        {
-            addPosition(m_up * delta_time * speed);
-            moved = true;
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_C))
-        {
-            addPosition(m_up * -delta_time * speed);
-            moved = true;
-        }
-        return moved;
-    }
-
     void FirstPersonCamera::onMouseMoved(MouseMovedEvent const & event)
     {
         m_yaw += ((float)event.m_x_pos - m_last_x) * SENSITIVITY;

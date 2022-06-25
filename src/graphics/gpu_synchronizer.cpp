@@ -1,7 +1,5 @@
 #include <vector>
 
-#include "logger.hpp"
-
 #include "gpu_synchronizer.hpp"
 
 namespace eng
@@ -33,15 +31,5 @@ namespace eng
     {
         m_fences.insert({ glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0) , completed_action });
         glFlush();
-    }
-
-    void GpuSynchronizer::readBufferWhenReady(GLuint buffer, GLintptr offset, GLsizeiptr size, ReadCallback completed_action)
-    {
-        setBarrier([=]()
-        {
-            std::vector<float> output(static_cast<size_t>(size) / sizeof(float));
-            glGetNamedBufferSubData(buffer, offset, size, output.data());
-            completed_action(output);
-        });
     }
 }

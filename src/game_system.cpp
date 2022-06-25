@@ -11,7 +11,10 @@ namespace eng
 
         m_px_pvd = physx::PxCreatePvd(*m_px_foundation);
 
-        m_px_physics = PxCreateBasePhysics(PX_PHYSICS_VERSION, *m_px_foundation, physx::PxTolerancesScale());
+        m_pvd_transport = physx::PxDefaultPvdSocketTransportCreate("192.168.2.118", 5425, 10);
+        m_px_pvd->connect(*m_pvd_transport, physx::PxPvdInstrumentationFlag::eALL);
+
+        m_px_physics = PxCreateBasePhysics(PX_PHYSICS_VERSION, *m_px_foundation, physx::PxTolerancesScale(), true, m_px_pvd);
         if (!m_px_physics) ENG_LOG("Failed to initialize PxPhysics!");
 
         if(!PxInitExtensions(*m_px_physics, m_px_pvd)) ENG_LOG("Failed to initialize Physx Extensions!");
@@ -29,6 +32,7 @@ namespace eng
         m_px_cooking->release();
         PxCloseExtensions();
         m_px_pvd->release();
+        m_pvd_transport->release();
         m_px_foundation->release(); // Release last
     }
     

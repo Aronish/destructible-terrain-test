@@ -13,11 +13,12 @@ namespace eng
     class FirstPersonCamera
     {
     private:
+        float inline static constexpr SENSITIVITY = 0.0015f;
+
+    private:
         glm::mat4 m_view_matrix, m_projection_matrix;
         glm::vec3 m_position{}, m_direction{}, m_right{}, m_up{};
         float m_fov{70}, m_aspect_ratio, m_yaw{}, m_pitch{}, m_last_x{}, m_last_y{};
-
-        inline static float constexpr SENSITIVITY = 0.0015f, MOVEMENT_SPEED = 1.5f;
 
     private:
         void calculateViewMatrix();
@@ -25,8 +26,6 @@ namespace eng
 
     public:
         FirstPersonCamera(unsigned int viewport_width, unsigned int viewport_height);
-
-        bool update(float delta_time, Window const & window);
 
         void onMouseMoved(MouseMovedEvent const & event);
 

@@ -13,6 +13,7 @@
 #include "graphics/gpu_synchronizer.hpp"
 #include "graphics/shader.hpp"
 #include "graphics/vertex_array.hpp"
+#include "player.hpp"
 #include "world/chunk.hpp"
 
 namespace eng
@@ -35,7 +36,7 @@ namespace eng
         int m_points_per_axis = 16, m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)), m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         glm::ivec3 m_last_chunk_coords{};
         int m_render_distance = 2;
-        float m_threshold = -0.2f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f, m_create_destroy_multiplier = 1.0f;
+        float m_threshold = 0.1f, m_chunk_size_in_units = 8.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f, m_create_destroy_multiplier = 1.0f;
 
         GameSystem & r_game_system;
 
@@ -53,7 +54,10 @@ namespace eng
 
         float * m_hit_info_ptr;
 
+        physx::PxMaterial * m_chunk_collider_material;
         ChunkPool m_chunk_pool;
+
+        Player m_player;
 
         physx::PxScene * m_scene;
 
@@ -74,7 +78,7 @@ namespace eng
         void generateChunks();
         void terraform(glm::ivec3 const & chunk);
 
-        void update(float delta_time, Window const & window, FirstPersonCamera const & camera);
+        void update(float delta_time, Window const & window, FirstPersonCamera & camera);
         void render(FirstPersonCamera const & camera);
         
         void updateGenerationConfig(WorldGenerationConfig const & config);

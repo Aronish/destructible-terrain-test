@@ -30,7 +30,7 @@ namespace eng
         return dist_squared > 0;
     }
 
-    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system)
+    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system), m_player(game_system, { 0.0f, 6.0f, 0.0f })
     {
         int constexpr tri_table[256][16] =
         {
@@ -315,6 +315,8 @@ namespace eng
         m_dispatch_indirect_buffer = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_dispatch_indirect_buffer, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
+        m_chunk_collider_material = game_system.getPhysx()->createMaterial(1.0f, 1.0f, 0.1f);
+
         physx::PxSceneDesc scene_desc{game_system.getPhysx()->getTolerancesScale()};
         scene_desc.gravity = physx::PxVec3{ 0.0f, -9.81f, 0.0f };
         if (!scene_desc.cpuDispatcher) scene_desc.cpuDispatcher = r_game_system.getPhysxCpuDispatcher();
@@ -322,11 +324,13 @@ namespace eng
         m_scene = game_system.getPhysx()->createScene(scene_desc);
         if (!m_scene) ENG_LOG("Failed to create world scene!");
 
-        m_chunk_pool.initialize((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2, m_max_triangle_count, m_points_per_axis);
+        m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2), m_max_triangle_count, m_points_per_axis);
         for (auto const & chunk : m_chunk_pool)
         {
             m_scene->addActor(*chunk.getStaticRigidBody());
         }
+
+        m_scene->addActor(*m_player.getDynamicRigidBody());
 
         initDynamicBuffers();
         updateGenerationConfig(WorldGenerationConfig{});
@@ -500,7 +504,7 @@ namespace eng
                     if (!m_chunk_pool.hasChunkAt(chunk_coordinate))
                     {
                         Chunk * chunk = nullptr;
-                        if (!m_chunk_pool.activateChunk(&chunk, chunk_coordinate)) continue;
+                        if (!m_chunk_pool.activateChunk(&chunk, chunk_coordinate, m_chunk_size_in_units)) continue;
                         uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1) | ((y_i == 1) << 2);
                         // Generate values for all points
                         m_density_generator->bind();
@@ -524,13 +528,13 @@ namespace eng
                         bindNeighborChunks(4, has_neighbors, chunk_coordinate);
                         m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
                         glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
-                        r_game_system.getGpuSynchronizer().readBufferWhenReady(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), [](std::vector<float> const & data)
+                        r_game_system.getGpuSynchronizer().readBufferWhenReady<int unsigned>(chunk->getDrawIndirectBuffer(), 0, sizeof(initial_indirect_config), [chunk](auto const & data)
                         {
-                            ENG_LOG("");
-                            for (auto const & d : data)
-                            {
-                                ENG_LOG_F("%f", d);
-                            }
+                                chunk->setMeshInfo(data[0]);
+                        });
+                        r_game_system.getGpuSynchronizer().readBufferWhenReady<float>(chunk->getMeshVB(), 0, m_max_triangle_count * sizeof(float) * 18, [=](auto const & data)
+                        {
+                                chunk->setMeshCollider(data, m_chunk_collider_material, m_chunk_size_in_units);
                         });
                     }
                 }
@@ -584,13 +588,16 @@ namespace eng
     }
 */
 
-    void World::update(float delta_time, Window const & window, FirstPersonCamera const & camera)
+    void World::update(float delta_time, Window const & window, FirstPersonCamera & camera)
     {
-        m_scene->simulate(delta_time);
+        m_player.update(delta_time, window, camera);
+        camera.setPosition(m_player.getPosition());
+        onPlayerMoved(camera);
         if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
         {
             castRay(camera);
         }
+        m_scene->simulate(delta_time);
         m_scene->fetchResults(true);
     }
 

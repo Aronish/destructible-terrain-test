@@ -18,9 +18,10 @@ namespace eng
         using EventCallback = std::function<void(Event const &)>;
 
         GLFWwindow * m_window_handle;
-        bool m_cursor_visible;
+        GLFWvidmode const * m_video_mode;
+        bool m_cursor_visible, m_fullscreen;
         double m_mouse_x, m_mouse_y;
-        int m_width, m_height;
+        int m_width, m_height, m_init_width, m_init_height;
 
         struct UserPointer
         {
@@ -39,6 +40,9 @@ namespace eng
 
         int getWidth() const;
         int getHeight() const;
+
+        void setFullscreen(bool fullscreen);
+        bool isFullscreen() const;
 
         void setTitle(char const * title) const;
 
