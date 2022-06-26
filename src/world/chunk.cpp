@@ -141,7 +141,7 @@ namespace eng
         return m_position;
     }
     
-    physx::PxRigidStatic * Chunk::getStaticRigidBody() const
+    physx::PxRigidStatic * Chunk::getRigidBody() const
     {
         return m_static_rigid_body;
     }

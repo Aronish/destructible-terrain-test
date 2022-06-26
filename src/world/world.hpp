@@ -54,12 +54,13 @@ namespace eng
 
         float * m_hit_info_ptr;
 
-        physx::PxMaterial * m_chunk_collider_material;
         ChunkPool m_chunk_pool;
-
-        Player m_player;
+        physx::PxMaterial * m_chunk_collider_material;
 
         physx::PxScene * m_scene;
+
+        Player m_player;
+        physx::PxControllerManager * m_controller_manager;
 
     public:
         World(GameSystem & game_system);
@@ -71,7 +72,7 @@ namespace eng
         void chunkRayIntersection(glm::ivec3 const & chunk_coordinate, glm::vec3 const & origin, glm::vec3 const & direction);
 
         void onKeyPressed(KeyPressedEvent const & event);
-        void onPlayerMoved(FirstPersonCamera const & camera);
+        void onCameraMoved(FirstPersonCamera const & camera);
 
         void invalidateAllChunks();
         void bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec3 const & chunk_coordinate);

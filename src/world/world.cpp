@@ -30,7 +30,7 @@ namespace eng
         return dist_squared > 0;
     }
 
-    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system), m_player(game_system, { 0.0f, 6.0f, 0.0f })
+    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system)
     {
         int constexpr tri_table[256][16] =
         {
@@ -315,22 +315,23 @@ namespace eng
         m_dispatch_indirect_buffer = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_dispatch_indirect_buffer, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
-        m_chunk_collider_material = game_system.getPhysx()->createMaterial(1.0f, 1.0f, 0.1f);
+        m_chunk_collider_material = game_system.getPhysx()->createMaterial(1.0f, 1.0f, 1.0f);
 
         physx::PxSceneDesc scene_desc{game_system.getPhysx()->getTolerancesScale()};
         scene_desc.gravity = physx::PxVec3{ 0.0f, -9.81f, 0.0f };
         if (!scene_desc.cpuDispatcher) scene_desc.cpuDispatcher = r_game_system.getPhysxCpuDispatcher();
         if (!scene_desc.filterShader) scene_desc.filterShader = physx::PxDefaultSimulationFilterShader;
         m_scene = game_system.getPhysx()->createScene(scene_desc);
-        if (!m_scene) ENG_LOG("Failed to create world scene!");
+        if (!m_scene) throw std::runtime_error("Failed to create PhysX scene!");
+
+        m_controller_manager = PxCreateControllerManager(*m_scene);
+        m_player.initCharacterController(m_controller_manager, game_system, { 0.0f, 15.0f, 0.0f });
 
         m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2), m_max_triangle_count, m_points_per_axis);
         for (auto const & chunk : m_chunk_pool)
         {
-            m_scene->addActor(*chunk.getStaticRigidBody());
+            m_scene->addActor(*chunk.getRigidBody());
         }
-
-        m_scene->addActor(*m_player.getDynamicRigidBody());
 
         initDynamicBuffers();
         updateGenerationConfig(WorldGenerationConfig{});
@@ -339,6 +340,8 @@ namespace eng
     World::~World()
     {
         m_scene->release();
+        m_chunk_collider_material->release();
+        m_controller_manager->release();
     }
 
     void World::initDynamicBuffers()
@@ -449,7 +452,7 @@ namespace eng
         }
     }
 
-    void World::onPlayerMoved(FirstPersonCamera const & camera)
+    void World::onCameraMoved(FirstPersonCamera const & camera)
     {
         auto chunk_coords = static_cast<glm::ivec3>(glm::floor(camera.getPosition() / static_cast<float>(m_chunk_size_in_units)));
         if (m_last_chunk_coords != chunk_coords)
@@ -592,7 +595,7 @@ namespace eng
     {
         m_player.update(delta_time, window, camera);
         camera.setPosition(m_player.getPosition());
-        onPlayerMoved(camera);
+        onCameraMoved(camera);
         if (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS)
         {
             castRay(camera);

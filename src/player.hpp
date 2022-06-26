@@ -13,19 +13,19 @@ namespace eng
 	class Player
 	{
 	private:
-		float inline static constexpr MOVEMENT_SPEED = 2.5f;
+		float inline static constexpr WALKING_SPEED = 2.5f, RUN_MULTIPLIER = 1.6f;
 
 	private:
-		glm::vec3 m_position{};
-		physx::PxRigidDynamic * m_rigid_body;
+		physx::PxController * m_character_controller;
+		physx::PxVec3 m_velocity{ physx::PxZERO::PxZero };
+		physx::PxControllerCollisionFlags m_collision_flags;
+		bool m_on_ground{};
 
 	public:
-		Player(GameSystem & game_system, glm::vec3 const & initial_position = {});
+		void initCharacterController(physx::PxControllerManager * controller_manager, GameSystem & game_system, physx::PxExtendedVec3 const & initial_position);
 
 		void update(float delta_time, Window const & window, FirstPersonCamera const & camera);
 
 		glm::vec3 const & getPosition() const;
-
-		physx::PxRigidDynamic * getDynamicRigidBody() const;
 	};
 }

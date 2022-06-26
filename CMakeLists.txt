@@ -83,6 +83,7 @@ target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXFounda
 target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXCooking_64)
 target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXPvdSDK_static_64)
 target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXExtensions_static_64)
+target_link_libraries(engineering_game lib/physx/bin/${PHYSX_CONFIG}/PhysXCharacterKinematic_static_64)
 
 # physx pre-build library copying
 file(GLOB physx_dlls ${CMAKE_CURRENT_SOURCE_DIR}/lib/physx/bin/${PHYSX_CONFIG}/*.dll)

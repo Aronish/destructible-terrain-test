@@ -2,51 +2,66 @@
 
 namespace eng
 {
-	Player::Player(GameSystem & game_system, glm::vec3 const & initial_position) : m_position(initial_position)
+	void Player::initCharacterController(physx::PxControllerManager * controller_manager, GameSystem & game_system, physx::PxExtendedVec3 const & initial_position)
 	{
-		using namespace physx;
-		m_rigid_body = game_system.getPhysx()->createRigidDynamic(PxTransform(initial_position.x, initial_position.y, initial_position.z));
-		PxTransform relative_pose(PxQuat(PxHalfPi, PxVec3(0, 0, 1)));
-		physx::PxMaterial * material = game_system.getPhysx()->createMaterial(0.5f, 0.5f, 0.1f);
-		physx::PxShape * capsule_shape = PxRigidActorExt::createExclusiveShape(*m_rigid_body, PxSphereGeometry(0.5f), *material);
-		capsule_shape->setLocalPose(relative_pose);
-		//capsule_shape->setContactOffset(physx::PxTolerancesScale().length * 1.0f);
-		PxRigidBodyExt::updateMassAndInertia(*m_rigid_body, 1.0f);
+		physx::PxCapsuleControllerDesc capsule_desc;
+		capsule_desc.height = 1.0f;
+		capsule_desc.radius = 0.25f;
+		capsule_desc.position = initial_position;
+		capsule_desc.material = game_system.getPhysx()->createMaterial(1.0f, 1.0f, 0.1f);
+		m_character_controller = controller_manager->createController(capsule_desc);
 	}
 
 	void Player::update(float delta_time, Window const & window, FirstPersonCamera const & camera)
 	{
-		m_rigid_body->clearForce();
+		m_velocity.x = m_velocity.z = 0.0f;
+
+		if (m_on_ground && glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
+		{
+			m_on_ground = false;
+			m_velocity.y += 4.0f;
+		}
+
+		m_velocity.y -= 9.81f * delta_time;
+
+		float speed = WALKING_SPEED * (glfwGetKey(window.getWindowHandle(), GLFW_KEY_LEFT_SHIFT) ? RUN_MULTIPLIER : 1.0f);
+		glm::vec2 player_direction = glm::vec2{ camera.getDirection().x, camera.getDirection().z } * speed;
+
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_W))
         {
-			m_rigid_body->addForce(physx::PxVec3{ camera.getDirection().x, camera.getDirection().y, camera.getDirection().z } * MOVEMENT_SPEED);
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S))
-        {
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D))
-        {
+			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
         }
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A))
         {
+			player_direction = glm::mat2(0.0f, -1.0f, 1.0f, 0.0f) * player_direction;
+			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
         }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S))
         {
-			m_position = { 0.0f, 15.0f, 0.0f };
-			m_rigid_body->setLinearVelocity({ 0.0f, 0.0f, 0.0f });
-			m_rigid_body->setGlobalPose(physx::PxTransform(m_position.x, m_position.y, m_position.z));
+			player_direction = -player_direction;
+			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
         }
-		auto const & linear_velocity = m_rigid_body->getLinearVelocity();
-		m_position += glm::vec3(linear_velocity.x, linear_velocity.y, linear_velocity.z) * delta_time;
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D))
+        {
+			player_direction = glm::mat2(0.0f, 1.0f, -1.0f, 0.0f) * player_direction;
+			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
+        }
+		if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_Q))
+		{
+			m_velocity = {};
+			m_character_controller->setPosition({ 0.0f, 15.0f, 0.0f });
+		}
+		m_collision_flags = m_character_controller->move(m_velocity * delta_time, 0.0f, delta_time, physx::PxControllerFilters());
+		if (m_collision_flags & physx::PxControllerCollisionFlag::eCOLLISION_DOWN)
+		{
+			m_on_ground = true;
+			m_velocity.y = 0.0f;
+		}
 	}
-
+	
 	glm::vec3 const & Player::getPosition() const
 	{
-		return m_position;
-	}
-
-	physx::PxRigidDynamic * Player::getDynamicRigidBody() const
-	{
-		return m_rigid_body;
+		auto const & [x, y, z] = m_character_controller->getPosition();
+		return glm::vec3(x, y, z);
 	}
 }

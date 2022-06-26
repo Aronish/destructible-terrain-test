@@ -54,7 +54,7 @@ namespace eng
         GLuint getDensityDistributionBuffer() const;
         GLuint getDrawIndirectBuffer() const;
 
-        physx::PxRigidStatic * getStaticRigidBody() const;
+        physx::PxRigidStatic * getRigidBody() const;
     };
 
     class ChunkPool
