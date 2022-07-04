@@ -26,6 +26,6 @@ namespace eng
 
 		void update(float delta_time, Window const & window, FirstPersonCamera const & camera);
 
-		glm::vec3 const & getPosition() const;
+		glm::vec3 getPosition() const;
 	};
 }

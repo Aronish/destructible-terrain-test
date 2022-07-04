@@ -37,24 +37,10 @@ namespace eng
         
         void setCursorPosition(std::pair<double, double> position);
 
-        glm::vec3 const & getPosition() const
-        {
-            return m_position;
-        }
-
-        glm::vec3 const & getDirection() const
-        {
-            return m_direction;
-        }
-
-        glm::mat4 const & getViewMatrix() const
-        {
-            return m_view_matrix;
-        }
-
-        glm::mat4 const & getProjectionMatrix() const
-        {
-            return m_projection_matrix;
-        }
+        float getYaw() const;
+        glm::vec3 const & getPosition() const;
+        glm::vec3 const & getDirection() const;
+        glm::mat4 const & getViewMatrix() const;
+        glm::mat4 const & getProjectionMatrix() const;
     };
 }

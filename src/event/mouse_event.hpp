@@ -15,7 +15,7 @@ namespace eng
     class MousePressedEvent : public MouseButtonEvent
     {
     public:
-        explicit MousePressedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_PRESSED, button_code, window) {}
+        MousePressedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_PRESSED, button_code, window) {}
         
         static EventType getStaticEventType()
         {
@@ -26,7 +26,7 @@ namespace eng
     class MouseReleasedEvent : public MouseButtonEvent
     {
     public:
-        explicit MouseReleasedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_RELEASED, button_code, window) {}
+        MouseReleasedEvent(int button_code, Window & window) : MouseButtonEvent(EventType::MOUSE_RELEASED, button_code, window) {}
 
         static EventType getStaticEventType()
         {

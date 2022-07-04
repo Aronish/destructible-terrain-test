@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include "player.hpp"
 
 namespace eng
@@ -14,38 +16,29 @@ namespace eng
 
 	void Player::update(float delta_time, Window const & window, FirstPersonCamera const & camera)
 	{
-		m_velocity.x = m_velocity.z = 0.0f;
-
+		// Jump
 		if (m_on_ground && glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
 		{
 			m_on_ground = false;
 			m_velocity.y += 4.0f;
 		}
-
 		m_velocity.y -= 9.81f * delta_time;
 
+		// Movement
+		m_velocity.x = m_velocity.z = 0.0f;
 		float speed = WALKING_SPEED * (glfwGetKey(window.getWindowHandle(), GLFW_KEY_LEFT_SHIFT) ? RUN_MULTIPLIER : 1.0f);
-		glm::vec2 player_direction = glm::vec2{ camera.getDirection().x, camera.getDirection().z } * speed;
+		float cos_yaw = std::cosf(camera.getYaw()), sin_yaw = std::sinf(camera.getYaw());
+		glm::vec2 player_direction{};
 
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_W))
-        {
-			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A))
-        {
-			player_direction = glm::mat2(0.0f, -1.0f, 1.0f, 0.0f) * player_direction;
-			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S))
-        {
-			player_direction = -player_direction;
-			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
-        }
-        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D))
-        {
-			player_direction = glm::mat2(0.0f, 1.0f, -1.0f, 0.0f) * player_direction;
-			m_velocity += physx::PxVec3(player_direction.x, 0.0f, player_direction.y);
-        }
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_W)) player_direction += glm::vec2{ cos_yaw, sin_yaw };
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A)) player_direction += glm::mat2(0.0f, -1.0f, 1.0f, 0.0f) * glm::vec2{ cos_yaw, sin_yaw };
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S)) player_direction += -glm::vec2{ cos_yaw, sin_yaw };
+        if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D)) player_direction += glm::mat2(0.0f, 1.0f, -1.0f, 0.0f) * glm::vec2{ cos_yaw, sin_yaw };
+		if (glm::length(player_direction) > 0.0f)
+		{
+			player_direction = glm::normalize(player_direction) * speed;
+			m_velocity += physx::PxVec3{ player_direction.x, 0.0f, player_direction.y };
+		}
 		if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_Q))
 		{
 			m_velocity = {};
@@ -59,9 +52,9 @@ namespace eng
 		}
 	}
 	
-	glm::vec3 const & Player::getPosition() const
+	glm::vec3 Player::getPosition() const
 	{
 		auto const & [x, y, z] = m_character_controller->getPosition();
-		return glm::vec3(x, y, z);
+		return { x, y, z };
 	}
 }

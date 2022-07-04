@@ -4,7 +4,7 @@
 
 namespace eng
 {
-    static constexpr GLuint GLTypeToSize(GLenum type)
+    constexpr static GLuint GLTypeToSize(GLenum type)
     {
         switch (type)
         {
@@ -18,11 +18,11 @@ namespace eng
     VertexDataLayout const VertexDataLayout::POSITION_NORMAL_3F = {{{ 3, GL_FLOAT }, { 3, GL_FLOAT }}};
     VertexDataLayout const VertexDataLayout::POSIITON_UV_2F = {{{ 2, GL_FLOAT }, { 2, GL_FLOAT }}};
 
-    VertexDataElement::VertexDataElement(unsigned int size, GLenum type) : m_size(size), m_type_size(GLTypeToSize(type)), m_type(type) {}
+    VertexDataElement::VertexDataElement(int unsigned size, GLenum type) : m_size(size), m_type_size(GLTypeToSize(type)), m_type(type) {}
 
     VertexDataLayout::VertexDataLayout(std::vector<VertexDataElement> && elements) : m_elements(std::move(elements))
     {
-        unsigned int offset = 0;
+        int unsigned offset = 0;
         for (auto & element : m_elements)
         {
             element.m_offset = offset;

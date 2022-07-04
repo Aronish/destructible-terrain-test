@@ -9,9 +9,9 @@ namespace eng
 {
     static GLenum customShaderTypeToGLenum(std::string const & shader_type_token)
     {
-        if (shader_type_token == "vert") return GL_VERTEX_SHADER;
-        if (shader_type_token == "frag") return GL_FRAGMENT_SHADER;
-        if (shader_type_token == "comp") return GL_COMPUTE_SHADER;
+        if (shader_type_token == "vert")        return GL_VERTEX_SHADER;
+        if (shader_type_token == "frag")        return GL_FRAGMENT_SHADER;
+        if (shader_type_token == "comp")        return GL_COMPUTE_SHADER;
         ENG_LOG_F("Unknown or unsupported shader type %s", shader_type_token.c_str());
         return 0;
     }
@@ -23,19 +23,19 @@ namespace eng
         // Break shaders according to #shader <shader_type>
         std::unordered_map<GLenum, std::string> shader_sources;
 
-        const char * typeToken = "#shader";
-		size_t shader_type_token_length = std::strlen(typeToken);
-		size_t pos = source.find(typeToken, 0);                                     //Start of line with #shader <shader_type>
+        char const * type_token = "#shader";
+		size_t shader_type_token_length = std::strlen(type_token);
+		size_t pos = source.find(type_token, 0);                                     //Start of line with #shader <shader_type>
 		while (pos != std::string::npos)
 		{
 			size_t eol = source.find_first_of("\r\n", pos);                         //End of shader type directive line
 			size_t type_begin = pos + shader_type_token_length + 1;                 //Start of shader type after #shader
 			std::string shader_type = source.substr(type_begin, eol - type_begin);
 
-			size_t nextLinePos = source.find_first_not_of("\r\n", eol);             //Start of shader code after #shader directive line
-			pos = source.find(typeToken, nextLinePos);                              //Start of next #shader directive line
+			size_t next_line_pos = source.find_first_not_of("\r\n", eol);             //Start of shader code after #shader directive line
+			pos = source.find(type_token, next_line_pos);                              //Start of next #shader directive line
 
-			shader_sources[customShaderTypeToGLenum(shader_type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+			shader_sources[customShaderTypeToGLenum(shader_type)] = (pos == std::string::npos) ? source.substr(next_line_pos) : source.substr(next_line_pos, pos - next_line_pos);
 		}
         return shader_sources;
     }

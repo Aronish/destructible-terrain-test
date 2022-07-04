@@ -8,6 +8,7 @@ endif()
 
 # Compiler flags and predefined macros
 set(CMAKE_CXX_FLAGS "/EHsc /W4 /wd4706 /arch:AVX2")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/Zi /O2 /Ob2")
 set(CMAKE_CXX_FLAGS_RELEASE "/O2 /Ob3")
 
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/DEBUG:FULL")

@@ -14,7 +14,7 @@ namespace eng
         explicit Texture(char const * path);
         ~Texture();
 
-        void bind(unsigned int unit) const;
+        void bind(int unsigned unit) const;
 
         int getWidth() const;
         int getHeight() const;

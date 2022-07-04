@@ -32,11 +32,11 @@ namespace eng
         } m_user_pointer;
 
     public:
-        Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback);
+        Window(int unsigned width, int unsigned height, char const * title, bool maximized, EventCallback event_callback);
 
         ~Window();
 
-        void setSize(unsigned int width, unsigned int height);
+        void setSize(int unsigned width, int unsigned height);
 
         int getWidth() const;
         int getHeight() const;

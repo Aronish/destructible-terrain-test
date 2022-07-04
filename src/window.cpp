@@ -6,7 +6,7 @@
 
 namespace eng
 {
-    Window::Window(unsigned int width, unsigned int height, char const * title, bool maximized, EventCallback event_callback)
+    Window::Window(int unsigned width, int unsigned height, char const * title, bool maximized, EventCallback event_callback)
         : m_width(width), m_height(height), m_init_width(width), m_init_height(height), m_user_pointer(std::move(event_callback), *this)
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
@@ -32,8 +32,8 @@ namespace eng
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-#define ENG_DEBUG_LOG 1
-#if defined(ENG_DEBUG) && ENG_DEBUG_LOG
+#define ENG_GL_DEBUG_LOG 0
+#if defined(ENG_DEBUG) && ENG_GL_DEBUG_LOG
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(
         [](GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const * message, void const *)
@@ -112,7 +112,7 @@ namespace eng
         glfwTerminate();
     }
 
-    void Window::setSize(unsigned int width, unsigned int height)
+    void Window::setSize(int unsigned width, int unsigned height)
     {
         m_width = width;
         m_height = height;

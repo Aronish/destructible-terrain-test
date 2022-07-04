@@ -1,4 +1,7 @@
+#include <chrono>
 #include <vector>
+
+#include "logger.hpp"
 
 #include "gpu_synchronizer.hpp"
 
@@ -30,6 +33,5 @@ namespace eng
     void GpuSynchronizer::setBarrier(CompleteCallback completed_action)
     {
         m_fences.insert({ glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0) , completed_action });
-        glFlush();
     }
 }

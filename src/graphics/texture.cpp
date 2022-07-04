@@ -10,7 +10,7 @@ namespace eng
     {
         stbi_set_flip_vertically_on_load(true);
         int channels;
-        unsigned char * data = stbi_load(path, &m_width, &m_height, &channels, 0);
+        char unsigned * data = stbi_load(path, &m_width, &m_height, &channels, 0);
 #ifdef ENG_DEBUG
         if (!data)
         {
@@ -53,7 +53,7 @@ namespace eng
         glDeleteTextures(1, &m_texture_handle);
     }
 
-    void Texture::bind(unsigned int unit) const
+    void Texture::bind(int unsigned unit) const
     {
         glBindTextureUnit(unit, m_texture_handle);
     }

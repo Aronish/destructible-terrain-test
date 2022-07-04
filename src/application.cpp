@@ -110,7 +110,8 @@ namespace eng
     }
 
     WorldGenerationConfig static config;
-    bool static tweakable_lac_per = false;
+    bool static tweakable_lac_per{};
+    int static points_per_axis_exponent{};
 
     void Application::render()
     {
@@ -131,11 +132,7 @@ namespace eng
             ImGui::DragFloat("Terraform Radius", &m_world.m_terraform_radius, 0.01f, 0.0f, 10.0f);
             ImGui::DragFloat("Terraform Strength", &m_world.m_terraform_strength, 0.01f, -100.0f, 100.0f);
 
-            if (values_changed |= ImGui::InputInt("Points/Chunk Axis", &m_world.m_points_per_axis, 1, 1))
-            {
-                m_world.setPointsPerAxis(m_world.m_points_per_axis);
-            }
-            
+
             if (values_changed |= ImGui::Checkbox("Tweakable Lacunarity/Persistence", &tweakable_lac_per))
             {
                 if (!tweakable_lac_per)
