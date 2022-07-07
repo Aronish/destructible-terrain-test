@@ -4,8 +4,22 @@
 
 #include <glad/glad.h>
 
+#include "logger.hpp"
+
 namespace eng
 {
+    constexpr static GLuint GLTypeToSize(GLenum type)
+    {
+        switch (type)
+        {
+        case GL_INT:
+        case GL_FLOAT: return 4;
+        default:
+            ENG_LOG_F("Unsupported GL type: %d!", type);
+            return 0;
+        }
+    }
+
     struct VertexDataElement
     {
     public:

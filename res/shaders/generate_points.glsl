@@ -12,7 +12,6 @@ layout(std140, binding = 0) uniform WorldGenerationConfig
     int u_octaves_2d, u_octaves_3d;
     float u_frequency_2d, u_lacunarity_2d, u_persistence_2d, u_amplitude_2d, u_exponent_2d;
     float u_frequency_3d, u_lacunarity_3d, u_persistence_3d, u_amplitude_3d, u_exponent_3d;
-    float u_water_level;
 };
 
 layout(std430, binding = 3) buffer DensityDistribution
@@ -166,7 +165,6 @@ void main()
 
     float final_height = noise2d;
     float final_density = y - final_height;
-    //if (final_density < u_water_level) final_density = u_water_level;
     
     values[
         gl_GlobalInvocationID.z * u_points_per_axis * u_points_per_axis +

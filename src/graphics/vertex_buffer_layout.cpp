@@ -1,20 +1,7 @@
-#include "logger.hpp"
-
 #include "graphics/vertex_buffer_layout.hpp"
 
 namespace eng
 {
-    constexpr static GLuint GLTypeToSize(GLenum type)
-    {
-        switch (type)
-        {
-            case GL_FLOAT: return 4;
-            default:
-                ENG_LOG_F("Unsupported GL type: %d!", type);
-                return 0;
-        }
-    }
-
     VertexDataLayout const VertexDataLayout::POSITION_NORMAL_3F = {{{ 3, GL_FLOAT }, { 3, GL_FLOAT }}};
     VertexDataLayout const VertexDataLayout::POSIITON_UV_2F = {{{ 2, GL_FLOAT }, { 2, GL_FLOAT }}};
 

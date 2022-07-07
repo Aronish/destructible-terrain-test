@@ -1,22 +1,22 @@
-#include <stdio.h>
-#include <functional>
 #include <cmath>
+#include <functional>
+#include <stdio.h>
 
 #include <glad/glad.h>
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
 
-#include "logger.hpp"
+#include "event/application_event.hpp"
 #include "event/key_event.hpp"
 #include "event/mouse_event.hpp"
-#include "event/application_event.hpp"
+#include "logger.hpp"
 
 #include "application.hpp"
 
 namespace eng
 {
-    Application::Application(unsigned int width, unsigned int height, char const * title, bool maximized)
+    Application::Application(int unsigned width, int unsigned height, char const * title, bool maximized)
         : m_window(width, height, title, maximized, std::bind(&Application::onEvent, this, std::placeholders::_1)), m_camera(width, height), m_world(m_game_system)
     {
         glfwSwapInterval(1);
@@ -59,6 +59,7 @@ namespace eng
         VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
         VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
+        m_debug_controls.onShaderBlockChanged(m_world.getGenerationSpec().size());
         m_world.generateChunks();
     }
 
@@ -80,8 +81,11 @@ namespace eng
             case GLFW_KEY_F:
                 m_window.setFullscreen(!m_window.isFullscreen());
                 break;
+            case GLFW_KEY_R:
+                m_world.debugRecompile();
+                m_debug_controls.onShaderBlockChanged(m_world.getGenerationSpec().size());
+                break;
             }
-            m_world.onKeyPressed(event);
         });
         EventDispatcher::dispatch<MousePressedEvent>(event, [&](MousePressedEvent const & event)
         {
@@ -95,11 +99,6 @@ namespace eng
                     break;
             }
         });
-        EventDispatcher::dispatch<MouseScrolledEvent>(event, [&](MouseScrolledEvent const & event)
-        {
-            if (event.m_y_offset > 0) m_world.m_terraform_strength += 0.05f;
-            else m_world.m_terraform_strength -= 0.05f;
-        });
     }
 
     void Application::update(float delta_time)
@@ -108,10 +107,6 @@ namespace eng
         m_game_system.getGpuSynchronizer().update();
         if (!m_window.isCursorVisible()) m_world.update(delta_time, m_window, m_camera);
     }
-
-    WorldGenerationConfig static config;
-    bool static tweakable_lac_per{};
-    int static points_per_axis_exponent{};
 
     void Application::render()
     {
@@ -125,66 +120,17 @@ namespace eng
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            bool values_changed = false;
-
-            values_changed |= ImGui::DragFloat("Chunk Size", &m_world.m_chunk_size_in_units, 0.1f, 0.0f, FLT_MAX);
-            values_changed |= ImGui::DragFloat("Threshold", &m_world.m_threshold, 0.05f);
-            ImGui::DragFloat("Terraform Radius", &m_world.m_terraform_radius, 0.01f, 0.0f, 10.0f);
-            ImGui::DragFloat("Terraform Strength", &m_world.m_terraform_strength, 0.01f, -100.0f, 100.0f);
-
-
-            if (values_changed |= ImGui::Checkbox("Tweakable Lacunarity/Persistence", &tweakable_lac_per))
-            {
-                if (!tweakable_lac_per)
-                {
-                    config.m_lacunarity_2d = 2.0f;
-                    config.m_persistence_2d = 0.5f;
-                    config.m_lacunarity_3d = 2.0f;
-                    config.m_persistence_3d = 0.5f;
-                }
-            }
-
-            ImGui::Separator();
-            ImGui::Text("2D Noise");
-            if (values_changed |= ImGui::InputInt("Octaves 2D", &config.m_octaves_2d, 1, 1))
-            {
-                if (config.m_octaves_2d < 1) config.m_octaves_2d = 1;
-            }
-            values_changed |= ImGui::DragFloat("Frequency 2D", &config.m_frequency_2d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Amplitude 2D", &config.m_amplitude_2d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Exponent 2D", &config.m_exponent_2d, 0.01f, 0.0f);
-
-            if (tweakable_lac_per)
-            {
-                values_changed |= ImGui::DragFloat("Lacunarity 2D", &config.m_lacunarity_2d, 0.01f, 0.0f);
-                values_changed |= ImGui::DragFloat("Persistence 2D", &config.m_persistence_2d, 0.01f, 0.0f);
-            }
-
-            ImGui::Separator();
-            ImGui::Text("3D Noise");
-            if (values_changed |= ImGui::InputInt("Octaves 3D", &config.m_octaves_3d, 1, 1))
-            {
-                if (config.m_octaves_3d < 1) config.m_octaves_3d = 1;
-            }
-            values_changed |= ImGui::DragFloat("Frequency 3D", &config.m_frequency_3d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Amplitude 3D", &config.m_amplitude_3d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Exponent 3D", &config.m_exponent_3d, 0.01f, 0.0f);
-
-            if (tweakable_lac_per)
-            {
-                values_changed |= ImGui::DragFloat("Lacunarity 3D", &config.m_lacunarity_3d, 0.01f, 0.0f);
-                values_changed |= ImGui::DragFloat("Persistence 3D", &config.m_persistence_3d, 0.01f, 0.0f);
-            }
-
-            if (values_changed)
-            {
-                m_world.updateGenerationConfig(config);
-                m_world.invalidateAllChunks();
-                m_world.generateChunks();
-            }
+            bool values_changed = m_debug_controls.render(m_world.getGenerationSpec());
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            if (values_changed)
+            {
+                m_world.updateGenerationConfig(m_debug_controls.getBufferData());
+                m_world.invalidateAllChunks();
+                m_world.generateChunks();
+            }
         }
 
         glDisable(GL_DEPTH_TEST);

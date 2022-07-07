@@ -7,14 +7,22 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
-#define DETECT_INACTIVE_UNIFORMS 0
+#define ENG_DETECT_INACTIVE_UNIFORMS 1
 
 namespace eng
 {
     class Shader
     {
+    public:
+        struct BlockVariable
+        {
+            std::string m_name;
+            GLenum m_type;
+            GLint m_buffer_offset;
+        };
     private:
         GLuint m_id;
         std::unordered_map<std::string, GLuint> m_uniform_locations;
@@ -33,5 +41,7 @@ namespace eng
         void setUniformVector3f(char const * name, glm::vec3 const & data);
         void setUniformFloat(char const * name, float data);
         void setUniformInt(char const * name, int data);
+
+        std::vector<BlockVariable> getBlockUniformInfo();
     };
 }

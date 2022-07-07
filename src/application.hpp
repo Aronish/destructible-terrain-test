@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <PxPhysicsAPI.h>
 
+#include "debug_controls.hpp"
 #include "event/event.hpp"
 #include "first_person_camera.hpp"
 #include "game_system.hpp"
@@ -23,6 +24,7 @@ namespace eng
     {
     private:
         Window m_window; // Has to be first due to OpenGL initialization
+        DebugControls m_debug_controls;
         GameSystem m_game_system;
         FirstPersonCamera m_camera;
         World m_world;
@@ -34,7 +36,7 @@ namespace eng
         GLuint m_crosshair_ib;
 
     public:
-        Application(unsigned int width, unsigned int height, char const * title, bool maximized);
+        Application(int unsigned width, int unsigned height, char const * title, bool maximized);
 
         void run();
         void onEvent(Event const & event);

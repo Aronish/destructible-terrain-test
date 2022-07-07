@@ -79,6 +79,7 @@ namespace eng
 
     void Shader::compile(char const * file_path)
     {
+        ENG_LOG_F("Compiled shader %s", file_path);
         std::vector<GLuint> compiled_shaders = compileCustomShaders(parseCustomShader(file_path));
 
         m_id = glCreateProgram();
@@ -123,18 +124,20 @@ namespace eng
 
         // Cache all uniform locations
         m_uniform_locations.clear();
-        GLint count;
-        glGetProgramiv(m_id, GL_ACTIVE_UNIFORMS, &count);
-
-        GLchar uniform_name[256];
-        GLsizei length;
-        GLint size;
-        GLenum type;
-        for (GLint i = 0; i < count; ++i)
+        GLint uniform_count;
+        glGetProgramInterfaceiv(m_id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniform_count);
+        GLenum const properties[] = { GL_BLOCK_INDEX, GL_NAME_LENGTH, GL_LOCATION };
+        size_t constexpr num_properties = std::size(properties);
+        for (int uniform = 0; uniform < uniform_count; ++uniform)
         {
-            glGetActiveUniform(m_id, i, sizeof(uniform_name), &length, &size, &type, uniform_name);
-            GLint uniform_location = glGetUniformLocation(m_id, uniform_name);
-            m_uniform_locations[uniform_name] = uniform_location;
+            GLint values[num_properties];
+            glGetProgramResourceiv(m_id, GL_UNIFORM, uniform, num_properties, properties, num_properties, nullptr, values);
+            if (values[0] != -1) continue; // Skips uniforms in blocks
+            
+            std::string name(values[1], ' ');
+            glGetProgramResourceName(m_id, GL_UNIFORM, uniform, static_cast<GLsizei>(values[1]), nullptr, name.data());
+            name.pop_back(); // \0 means nothing in an std::string, but this mf ^ will add one regardless
+            m_uniform_locations[name] = values[2];
         }
     }
 
@@ -155,91 +158,100 @@ namespace eng
 
     void Shader::setUniformMatrix3f(char const * name, glm::mat3 const & data)
     {
-#ifdef ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(data));
     }
 
     void Shader::setUniformMatrix4f(char const * name, glm::mat4 const & data)
     {
-#ifdef ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
     }
 
     void Shader::setUniformVector2f(char const * name, glm::vec2 const & data)
     {
-#if ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Vector2f uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniform2f(location, data.x, data.y);
     }
 
     void Shader::setUniformVector3f(char const * name, glm::vec3 const & data)
     {
-#if ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Vector3f uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniform3f(location, data.x, data.y, data.z);
     }
 
     void Shader::setUniformFloat(char const * name, float data)
     {
-#ifdef ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Float uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniform1f(location, data);
     }
 
     void Shader::setUniformInt(char const * name, int data)
     {
-#ifdef ENG_DEBUG
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
         if (m_uniform_locations.find(name) == m_uniform_locations.end())
         {
-#if DETECT_INACTIVE_UNIFORMS
             ENG_LOG_F("Int uniform with name %s does not exist!", name);
-#endif
             return;
         }
 #endif
-        GLuint location = m_uniform_locations[name];
+        GLuint location = m_uniform_locations.at(name);
         glUniform1i(location, data);
+    }
+
+    std::vector<Shader::BlockVariable> Shader::getBlockUniformInfo()
+    {
+        std::vector<BlockVariable> block_uniform_names;
+        GLint uniform_count;
+        glGetProgramInterfaceiv(m_id, GL_UNIFORM, GL_ACTIVE_RESOURCES, &uniform_count);
+        GLenum const properties[] = { GL_BLOCK_INDEX, GL_NAME_LENGTH, GL_TYPE, GL_OFFSET };
+        size_t constexpr num_properties = std::size(properties);
+        for (int uniform = 0; uniform < uniform_count; ++uniform)
+        {
+            GLint values[num_properties];
+            glGetProgramResourceiv(m_id, GL_UNIFORM, uniform, num_properties, properties, num_properties, nullptr, values);
+            if (values[0] == -1) continue; // Skips bare uniforms
+
+            std::string name(values[1], ' ');
+            glGetProgramResourceName(m_id, GL_UNIFORM, uniform, static_cast<GLsizei>(values[1]), nullptr, name.data());
+            name.pop_back(); // \0 means nothing in an std::string, but this mf ^ will add one regardless
+            block_uniform_names.emplace_back(name, values[2], values[3]);
+        }
+        return block_uniform_names;
     }
 }

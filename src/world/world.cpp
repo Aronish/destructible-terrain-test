@@ -38,7 +38,6 @@ namespace eng
         m_mesh_ray_intersect =  game_system.getAssetManager().getShader("res/shaders/mesh_ray_intersect.glsl");
         m_ray_mesh_command =    game_system.getAssetManager().getShader("res/shaders/ray_mesh_command.glsl");
         m_terraform =           game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
-        m_tesselated_chunk =    game_system.getAssetManager().getShader("res/shaders/tesselated_chunk.glsl");
 
         auto tri_table = new int[256][16]
         {
@@ -303,8 +302,12 @@ namespace eng
         m_triangulation_table_ss = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_triangulation_table_ss, sizeof(int) * 256 * 16, tri_table, 0);
 
+        refreshGenerationSpec();
+        size_t config_buffer_size{};
+        for (auto const & block_variable : m_generation_spec) config_buffer_size += GLTypeToSize(block_variable.m_type);
+
         m_generation_config_u = game_system.getAssetManager().createBuffer();
-        glNamedBufferStorage(m_generation_config_u, sizeof(WorldGenerationConfig), nullptr, GL_DYNAMIC_STORAGE_BIT);
+        glNamedBufferStorage(m_generation_config_u, config_buffer_size, nullptr, GL_DYNAMIC_STORAGE_BIT);
 
         m_ray_hit_data_ss = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_ray_hit_data_ss, sizeof(float) * RAY_HIT_DATA_SIZE, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
@@ -335,7 +338,6 @@ namespace eng
         }
 
         initDynamicBuffers();
-        updateGenerationConfig(WorldGenerationConfig{});
 
         delete[] tri_table;
     }
@@ -445,16 +447,15 @@ namespace eng
         glDispatchComputeIndirect(0);
     }
 
-    void World::onKeyPressed(KeyPressedEvent const & event)
+    void World::debugRecompile()
     {
-        if (event.m_key_code == GLFW_KEY_R)
-        {
-            m_density_generator->compile("res/shaders/generate_points.glsl");
-            m_chunk_renderer->compile("res/shaders/light_test.glsl");
-            m_marching_cubes->compile("res/shaders/marching_cubes.glsl");
-            invalidateAllChunks();
-            generateChunks();
-        }
+        m_density_generator->compile("res/shaders/generate_points.glsl");
+        m_chunk_renderer->compile("res/shaders/light_test.glsl");
+        m_marching_cubes->compile("res/shaders/marching_cubes.glsl");
+
+        refreshGenerationSpec();
+        invalidateAllChunks();
+        generateChunks();
     }
 
     void World::onPlayerMoved(glm::vec3 const & position)
@@ -605,7 +606,7 @@ namespace eng
         glBindVertexArray(m_chunk_va);
         for (auto & chunk : m_chunk_pool)
         {
-            if (!chunk.isActive() || chunk.getPosition() == m_last_chunk_coords) continue;
+            if (!chunk.isActive()) continue;
             m_chunk_renderer->setUniformFloat("u_points_per_axis", static_cast<float>(m_points_per_axis));
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(chunk.getPosition())));
             VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::POSITION_NORMAL_3F);
@@ -614,9 +615,18 @@ namespace eng
         }
     }
     
-    void World::updateGenerationConfig(WorldGenerationConfig const & config)
+    void World::refreshGenerationSpec()
     {
-        glNamedBufferSubData(m_generation_config_u, 0, sizeof(WorldGenerationConfig), &config);
+        m_generation_spec = m_density_generator->getBlockUniformInfo();
+        for (auto const & block_variable : m_generation_spec)
+        {
+            ENG_LOG_F("%s, %d, %d", block_variable.m_name.c_str(), block_variable.m_type, block_variable.m_buffer_offset);
+        }
+    }
+
+    void World::updateGenerationConfig(float const * buffer_data)
+    {
+        glNamedBufferSubData(m_generation_config_u, 0, m_generation_spec.size() * sizeof(float), buffer_data);
     }
 
     void World::setRenderDistance(int unsigned render_distance)
@@ -628,7 +638,7 @@ namespace eng
     {
         if (exponent < 1) exponent = 1;
         if (exponent > 5) exponent = 5;
-        m_points_per_axis = std::pow(2, exponent);
+        m_points_per_axis = static_cast<int>(std::pow(2, exponent));
         m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE));
         m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
         initDynamicBuffers();
@@ -637,5 +647,10 @@ namespace eng
     int unsigned World::getPointsPerAxis()
     {
         return m_points_per_axis;
+    }
+
+    std::vector<Shader::BlockVariable> const & World::getGenerationSpec() const
+    {
+        return m_generation_spec;
     }
 }
