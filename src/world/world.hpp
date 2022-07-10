@@ -34,7 +34,7 @@ namespace eng
         int m_points_per_axis = 16,
             m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)),
             m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5,
-            m_render_distance = 2;
+            m_render_distance = 3;
         float m_threshold = 0.1f, m_chunk_size_in_units = 16.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f;
 
         GameSystem & r_game_system;
@@ -60,6 +60,7 @@ namespace eng
 
         physx::PxScene * m_scene;
 
+        bool m_spectating{};
         Player m_player;
         physx::PxControllerManager * m_controller_manager;
 
@@ -88,9 +89,9 @@ namespace eng
         
         void refreshGenerationSpec();
         void updateGenerationConfig(float const * buffer_data);
-        
-        void setRenderDistance(int unsigned render_distance);
 
+        void setSpectating(bool spectating);
+        void setRenderDistance(int unsigned render_distance);
         void setPointsPerAxis(int unsigned exponent);
         int unsigned getPointsPerAxis();
 

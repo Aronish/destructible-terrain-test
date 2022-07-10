@@ -14,15 +14,22 @@ namespace eng
 		m_character_controller = controller_manager->createController(capsule_desc);
 	}
 
-	void Player::update(float delta_time, Window const & window, FirstPersonCamera const & camera)
+	void Player::update(float delta_time, Window const & window, FirstPersonCamera const & camera, bool flight)
 	{
-		// Jump
-		if (m_on_ground && glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
+		if (flight)
 		{
-			m_on_ground = false;
-			m_velocity.y += 4.0f;
+			m_velocity.y = 0.0f;
 		}
-		m_velocity.y -= 9.81f * delta_time;
+		else
+		{
+			// Jump
+			if (m_on_ground && glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE))
+			{
+				m_on_ground = false;
+				m_velocity.y += 4.0f;
+			}
+			m_velocity.y -= 9.81f * delta_time;
+		}
 
 		// Movement
 		m_velocity.x = m_velocity.z = 0.0f;
@@ -34,6 +41,8 @@ namespace eng
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_A)) player_direction += glm::mat2(0.0f, -1.0f, 1.0f, 0.0f) * glm::vec2{ cos_yaw, sin_yaw };
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_S)) player_direction += -glm::vec2{ cos_yaw, sin_yaw };
         if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_D)) player_direction += glm::mat2(0.0f, 1.0f, -1.0f, 0.0f) * glm::vec2{ cos_yaw, sin_yaw };
+		if (flight && glfwGetKey(window.getWindowHandle(), GLFW_KEY_SPACE)) m_velocity.y += speed;
+		else if (glfwGetKey(window.getWindowHandle(), GLFW_KEY_C)) m_velocity.y -= speed;
 		if (glm::length(player_direction) > 0.0f)
 		{
 			player_direction = glm::normalize(player_direction) * speed;
@@ -44,8 +53,10 @@ namespace eng
 			m_velocity = {};
 			m_character_controller->setPosition({ 0.0f, 15.0f, 0.0f });
 		}
-		m_collision_flags = m_character_controller->move(m_velocity * delta_time, 0.0f, delta_time, physx::PxControllerFilters());
-		if (m_collision_flags & physx::PxControllerCollisionFlag::eCOLLISION_DOWN)
+		physx::PxControllerFilters filters;
+		if (flight) filters.mFilterFlags.clear(physx::PxQueryFlag::eSTATIC);
+		m_collision_flags = m_character_controller->move(m_velocity * delta_time, 0.0f, delta_time, filters);
+		if (!flight && (m_collision_flags & physx::PxControllerCollisionFlag::eCOLLISION_DOWN))
 		{
 			m_on_ground = true;
 			m_velocity.y = 0.0f;

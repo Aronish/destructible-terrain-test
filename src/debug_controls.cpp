@@ -10,79 +10,66 @@ namespace eng
         m_generation_data.resize(num_variables);
     }
 
-    bool DebugControls::render(std::vector<Shader::BlockVariable> const & generation_spec)
-	{
-        bool values_changed = false;
-        /*
-        values_changed |= ImGui::DragFloat("Chunk Size", &world.m_chunk_size_in_units, 0.1f, 0.0f, FLT_MAX);
-        values_changed |= ImGui::DragFloat("Threshold", &world.m_threshold, 0.05f);
-        ImGui::DragFloat("Terraform Radius", &world.m_terraform_radius, 0.01f, 0.0f, 10.0f);
-        ImGui::DragFloat("Terraform Strength", &world.m_terraform_strength, 0.01f, -100.0f, 100.0f);
-
-        if (values_changed |= ImGui::Checkbox("Tweakable Lacunarity/Persistence", &m_tweakable_lac_per))
+    void DebugControls::loadDefaultValues(std::vector<Shader::BlockVariable> const & spec)
+    {
+        std::ifstream stream(DEFAULTS_FILE, std::ios::in);
+        std::string source{ std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>() };
+        std::stringstream defaults(source);
+        std::string line, name, value;
+        while (std::getline(defaults, line, '\n'))
         {
-            if (!m_tweakable_lac_per)
+            size_t colon_pos{ line.find(":", 0) };
+            name = line.substr(0, colon_pos);
+            value = line.substr(colon_pos + 1, line.size() - colon_pos);
+            if (auto result = std::find_if(spec.begin(), spec.end(), [&name](Shader::BlockVariable variable) { return variable.m_name == name; }); result != spec.end())
             {
-                m_config.m_lacunarity_2d = 2.0f;
-                m_config.m_persistence_2d = 0.5f;
-                m_config.m_lacunarity_3d = 2.0f;
-                m_config.m_persistence_3d = 0.5f;
+                m_generation_data[(*result).m_buffer_offset / sizeof(IntOrFloat)] = (*result).m_type == GL_INT ? IntOrFloat{ std::stoi(value) } : IntOrFloat{ .f = std::stof(value) };
             }
         }
+    }
 
-        ImGui::Separator();
-        ImGui::Text("2D Noise");
-        if (values_changed |= ImGui::InputInt("Octaves 2D", &m_config.m_octaves_2d, 1, 1))
+    void DebugControls::saveDefaultValues(std::vector<Shader::BlockVariable> const & spec)
+    {
+        std::ofstream stream(DEFAULTS_FILE, std::ios::out);
+        for (auto const & variable : spec)
         {
-            if (m_config.m_octaves_2d < 1) m_config.m_octaves_2d = 1;
+            IntOrFloat value = m_generation_data[variable.m_buffer_offset / sizeof(IntOrFloat)];
+            stream << variable.m_name.c_str() << ":" << (variable.m_type == GL_INT ? value.i : value.f) << "\n";
         }
-        values_changed |= ImGui::DragFloat("Frequency 2D", &m_config.m_frequency_2d, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Amplitude 2D", &m_config.m_amplitude_2d, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Exponent 2D", &m_config.m_exponent_2d, 0.01f, 0.0f);
+    }
 
-        if (m_tweakable_lac_per)
-        {
-            values_changed |= ImGui::DragFloat("Lacunarity 2D", &m_config.m_lacunarity_2d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Persistence 2D", &m_config.m_persistence_2d, 0.01f, 0.0f);
-        }
+    bool DebugControls::render(World & world)
+	{
+        bool values_changed = false;
 
-        ImGui::Separator();
-        ImGui::Text("3D Noise");
-        if (values_changed |= ImGui::InputInt("Octaves 3D", &m_config.m_octaves_3d, 1, 1))
+        if (ImGui::CollapsingHeader("World Generation Config"))
         {
-            if (m_config.m_octaves_3d < 1) m_config.m_octaves_3d = 1;
-        }
-        values_changed |= ImGui::DragFloat("Frequency 3D", &m_config.m_frequency_3d, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Amplitude 3D", &m_config.m_amplitude_3d, 0.01f, 0.0f);
-        values_changed |= ImGui::DragFloat("Exponent 3D", &m_config.m_exponent_3d, 0.01f, 0.0f);
-
-        if (m_tweakable_lac_per)
-        {
-            values_changed |= ImGui::DragFloat("Lacunarity 3D", &m_config.m_lacunarity_3d, 0.01f, 0.0f);
-            values_changed |= ImGui::DragFloat("Persistence 3D", &m_config.m_persistence_3d, 0.01f, 0.0f);
-        }
-        */
-
-        for (auto const & block_variable : generation_spec)
-        {
-            switch (block_variable.m_type)
+            if (ImGui::Button("Load Defaults"))
             {
-                case GL_INT:
+                loadDefaultValues(world.getGenerationSpec());
+                values_changed = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Save As Default")) saveDefaultValues(world.getGenerationSpec());
+            values_changed |= ImGui::DragFloat("Threshold", &world.m_threshold, 0.05f);
+            for (auto const & block_variable : world.getGenerationSpec())
+            {
+                switch (block_variable.m_type)
                 {
-                    auto & value = m_generation_data[block_variable.m_buffer_offset / sizeof(ArithmeticType)];
-                    if (value.i == -1) value = ArithmeticType{ 0 };
-                    values_changed |= ImGui::DragInt(block_variable.m_name.c_str(), &value.i, 0.05f);
-                    break;
-                }
-                case GL_FLOAT:
-                {
-                    auto & value = m_generation_data[block_variable.m_buffer_offset / sizeof(ArithmeticType)];
-                    if (value.i == -1)
+                    case GL_INT:
                     {
-                        value = ArithmeticType{ .f = 0.0f };
+                        auto & value = m_generation_data[block_variable.m_buffer_offset / sizeof(IntOrFloat)];
+                        if (value.i == -1) value = IntOrFloat{ 0 };
+                        values_changed |= ImGui::DragInt(block_variable.m_name.c_str(), &value.i, 0.05f);
+                        break;
                     }
-                    values_changed |= ImGui::DragFloat(block_variable.m_name.c_str(), &value.f, 0.05f);
-                    break;
+                    case GL_FLOAT:
+                    {
+                        auto & value = m_generation_data[block_variable.m_buffer_offset / sizeof(IntOrFloat)];
+                        if (value.i == -1) value = IntOrFloat{ .f = 0.0f };
+                        values_changed |= ImGui::DragFloat(block_variable.m_name.c_str(), &value.f, 0.005f);
+                        break;
+                    }
                 }
             }
         }

@@ -19,7 +19,7 @@ namespace eng
     static std::unordered_map<GLenum, std::string> parseCustomShader(char const * file_path)
     {
         std::ifstream file(file_path, std::ios::in);
-        std::string source{std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+        std::string source{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
         // Break shaders according to #shader <shader_type>
         std::unordered_map<GLenum, std::string> shader_sources;
 

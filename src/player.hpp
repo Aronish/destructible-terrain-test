@@ -24,7 +24,7 @@ namespace eng
 	public:
 		void initCharacterController(physx::PxControllerManager * controller_manager, GameSystem & game_system, physx::PxExtendedVec3 const & initial_position);
 
-		void update(float delta_time, Window const & window, FirstPersonCamera const & camera);
+		void update(float delta_time, Window const & window, FirstPersonCamera const & camera, bool flight);
 
 		glm::vec3 getPosition() const;
 	};

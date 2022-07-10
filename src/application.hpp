@@ -29,6 +29,8 @@ namespace eng
         FirstPersonCamera m_camera;
         World m_world;
 
+        int m_spectating{};
+
         std::shared_ptr<Texture> m_crosshair_texture;
         std::shared_ptr<Shader> m_textured_quad_shader;
         GLuint m_crosshair_va;

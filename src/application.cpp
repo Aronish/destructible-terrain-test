@@ -120,7 +120,15 @@ namespace eng
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            bool values_changed = m_debug_controls.render(m_world.getGenerationSpec());
+            ImGui::Text("Game Mode");
+            ImGui::SameLine();
+            bool game_mode_changed = ImGui::RadioButton("Normal", &m_spectating, 0);
+            ImGui::SameLine();
+            game_mode_changed |= ImGui::RadioButton("Spectator", &m_spectating, 1);
+            if (game_mode_changed) m_world.setSpectating(m_spectating);
+
+            bool values_changed{};
+            if (m_spectating) values_changed = m_debug_controls.render(m_world);
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

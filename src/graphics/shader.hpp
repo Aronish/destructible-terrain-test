@@ -10,7 +10,7 @@
 #include <string_view>
 #include <unordered_map>
 
-#define ENG_DETECT_INACTIVE_UNIFORMS 1
+#define ENG_DETECT_INACTIVE_UNIFORMS 0
 
 namespace eng
 {
