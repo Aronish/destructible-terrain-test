@@ -35,7 +35,7 @@ namespace eng
             m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE)),
             m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5,
             m_render_distance = 3;
-        float m_threshold = 0.1f, m_chunk_size_in_units = 16.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f;
+        float m_threshold = 0.1f, m_chunk_size_in_units = 12.0f, m_terraform_strength = 0.24f, m_terraform_radius = 2.4f;
 
         GameSystem & r_game_system;
 
@@ -57,6 +57,8 @@ namespace eng
         ChunkPool m_chunk_pool;
         glm::ivec3 m_last_chunk_coords{};
         physx::PxMaterial * m_chunk_collider_material;
+        std::shared_ptr<Texture> m_grass_texture;
+        std::shared_ptr<Texture> m_dirt_texture;
 
         physx::PxScene * m_scene;
 

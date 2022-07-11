@@ -9,12 +9,15 @@ namespace eng
 {
     World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system)
     {
-        m_density_generator =   game_system.getAssetManager().getShader("res/shaders/generate_points.glsl");
-        m_marching_cubes =      game_system.getAssetManager().getShader("res/shaders/marching_cubes.glsl");
-        m_chunk_renderer =      game_system.getAssetManager().getShader("res/shaders/light_test.glsl");
-        m_mesh_ray_intersect =  game_system.getAssetManager().getShader("res/shaders/mesh_ray_intersect.glsl");
-        m_ray_mesh_command =    game_system.getAssetManager().getShader("res/shaders/ray_mesh_command.glsl");
-        m_terraform =           game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
+        m_density_generator     = game_system.getAssetManager().getShader("res/shaders/generate_points.glsl");
+        m_marching_cubes        = game_system.getAssetManager().getShader("res/shaders/marching_cubes.glsl");
+        m_chunk_renderer        = game_system.getAssetManager().getShader("res/shaders/chunk.glsl");
+        m_mesh_ray_intersect    = game_system.getAssetManager().getShader("res/shaders/mesh_ray_intersect.glsl");
+        m_ray_mesh_command      = game_system.getAssetManager().getShader("res/shaders/ray_mesh_command.glsl");
+        m_terraform             = game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
+        
+        m_grass_texture         = game_system.getAssetManager().getTexture("res/textures/TexturesCom_Grass0157_1_seamless_S.jpg");
+        m_dirt_texture          = game_system.getAssetManager().getTexture("res/textures/TexturesCom_Cliffs0356_1_seamless_S.jpg");
 
         auto tri_table = new int[256][16]
         {
@@ -334,7 +337,7 @@ namespace eng
     void World::debugRecompile()
     {
         m_density_generator->compile("res/shaders/generate_points.glsl");
-        m_chunk_renderer->compile("res/shaders/light_test.glsl");
+        m_chunk_renderer->compile("res/shaders/chunk.glsl");
         m_marching_cubes->compile("res/shaders/marching_cubes.glsl");
 
         refreshGenerationSpec();
@@ -449,15 +452,15 @@ namespace eng
     void World::render(FirstPersonCamera const & camera)
     {
         m_chunk_renderer->bind();
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
         m_chunk_renderer->setUniformMatrix4f("u_view", camera.getViewMatrix());
         m_chunk_renderer->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         m_chunk_renderer->setUniformVector3f("u_camera_position_W", camera.getPosition());
+        m_grass_texture->bind(0);
+        m_dirt_texture->bind(1);
         glBindVertexArray(m_chunk_va);
         for (auto & chunk : m_chunk_pool)
         {
             if (!chunk.isActive()) continue;
-            m_chunk_renderer->setUniformFloat("u_points_per_axis", static_cast<float>(m_points_per_axis));
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(chunk.getPosition())));
             VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::POSITION_NORMAL_3F);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk.getDrawIndirectBuffer());

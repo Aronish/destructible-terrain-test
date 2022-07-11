@@ -21,7 +21,7 @@ namespace eng
     {
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.42f, 0.71f, 0.73f, 1.0f);
+        glClearColor(0.79f, 0.94f, 1.0f, 1.0f);
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

@@ -42,7 +42,7 @@ namespace eng
         glNamedBufferData(m_density_distribution_ss, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
     }
 
-//#define COOK_REALTIME
+#define COOK_REALTIME 0
 
     void Chunk::setMeshCollider(std::vector<float> const & mesh, physx::PxMaterial * material, float chunk_size)
     {
@@ -51,7 +51,7 @@ namespace eng
         removeCollider();
 
         if (m_vertex_count == 0) return;
-#ifdef COOK_REALTIME
+#if COOK_REALTIME
         physx::PxTolerancesScale tolerances_scale;
         physx::PxCookingParams params(tolerances_scale);
         params.meshPreprocessParams |= physx::PxMeshPreprocessingFlag::eDISABLE_CLEAN_MESH;
@@ -70,7 +70,7 @@ namespace eng
         auto sub_indices = std::vector<uint32_t>(s_indices.begin(), s_indices.begin() + m_vertex_count);
         mesh_desc.triangles.data = sub_indices.data();
 
-#ifdef COOK_REALTIME
+#if COOK_REALTIME
         physx::PxTriangleMesh * triangle_mesh = r_game_system.getPhysxCooking()->createTriangleMesh(mesh_desc, r_game_system.getPhysx()->getPhysicsInsertionCallback());
 #else
         physx::PxDefaultMemoryOutputStream write_buffer;
