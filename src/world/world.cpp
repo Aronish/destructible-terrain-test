@@ -17,7 +17,7 @@ namespace eng
         m_terraform             = game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
         
         m_grass_texture         = game_system.getAssetManager().getTexture("res/textures/TexturesCom_Grass0157_1_seamless_S.jpg");
-        m_dirt_texture          = game_system.getAssetManager().getTexture("res/textures/TexturesCom_Cliffs0356_1_seamless_S.jpg");
+        m_dirt_texture          = game_system.getAssetManager().getTexture("res/textures/TexturesCom_SoilMud0044_1_seamless_S.jpg");
 
         auto tri_table = new int[256][16]
         {
@@ -311,13 +311,11 @@ namespace eng
         m_controller_manager = PxCreateControllerManager(*m_scene);
         m_player.initCharacterController(m_controller_manager, game_system, { 0.0f, 15.0f, 0.0f });
 
-        m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2), m_max_triangle_count, m_points_per_axis);
+        m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2), 16);
         for (auto const & chunk : m_chunk_pool)
         {
             m_scene->addActor(*chunk.getRigidBody());
         }
-
-        initDynamicBuffers();
 
         delete[] tri_table;
     }
@@ -327,11 +325,6 @@ namespace eng
         m_controller_manager->release();
         m_scene->release();
         m_chunk_collider_material->release();
-    }
-
-    void World::initDynamicBuffers()
-    {
-        m_chunk_pool.setMeshConfig(m_max_triangle_count, m_points_per_axis);
     }
 
     void World::debugRecompile()
@@ -365,11 +358,11 @@ namespace eng
     
     void World::bindNeighborChunks(int unsigned starting_index, uint8_t neighbor_mask, glm::ivec3 const & chunk_coordinate)
     {
+        std::vector<Chunk>::iterator neighbor{};
         for (uint8_t i = 1; i <= 7; ++i)
         {
-            if ((neighbor_mask & i) == i)
+            if ((neighbor_mask & i) == i) //0bxzy
             {
-                std::vector<Chunk>::iterator neighbor;
                 m_chunk_pool.getChunkAt(chunk_coordinate - glm::ivec3{ (i & 0b001) == 0b001, (i & 0b100) == 0b100, (i & 0b010) == 0b010 }, neighbor);
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, starting_index + (i - 1), neighbor->getDensityDistributionBuffer());
             }
@@ -397,22 +390,17 @@ namespace eng
                 for (int y_i = 0; y_i < 2; ++y_i)
                 {
                     glm::ivec3 chunk_coordinate{ x_i + m_last_chunk_coords.x, y_i, z_i + m_last_chunk_coords.z };
-                    if (!m_chunk_pool.hasChunkAt(chunk_coordinate))
+                    uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1) | ((y_i == 1) << 2);
+                    if (!m_chunk_pool.hasChunkAt(chunk_coordinate)) // If no chunk exists, create one
                     {
                         Chunk * chunk = nullptr;
-                        if (!m_chunk_pool.activateChunk(chunk, chunk_coordinate, m_chunk_size_in_units)) continue;
-                        uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1) | ((y_i == 1) << 2);
-                        // Generate values for all points
-                        m_density_generator->bind();
-                        m_density_generator->setUniformInt("u_points_per_axis", m_points_per_axis);
-                        m_density_generator->setUniformInt("u_resolution", m_resolution);
-                        m_density_generator->setUniformVector3f("u_position_offset", static_cast<glm::vec3>(chunk_coordinate));
-                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getDensityDistributionBuffer());
-                        m_density_generator->dispatchCompute(m_resolution, m_resolution, m_resolution);
-                        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-                        generateMesh(chunk, chunk_coordinate, has_neighbors);
-                        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
+                        if (!m_chunk_pool.activateChunk(chunk, chunk_coordinate, m_chunk_size_in_units))
+                        {
+                            ENG_LOG_F("Couldn't create chunk at (%d, %d, %d)!", chunk_coordinate.x, chunk_coordinate.y, chunk_coordinate.z);
+                            continue;
+                        }
+                        generateDensityDistribution(*chunk);
+                        generateMesh(*chunk, has_neighbors);
                     }
                 }
             }
@@ -423,13 +411,13 @@ namespace eng
             r_game_system.getGpuSynchronizer().setBarrier([this]
             {
                 std::vector<int unsigned> mesh_info(6);
-                std::vector<float> mesh(m_max_triangle_count * 18);
+                std::vector<float> mesh(maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * 18);
                 for (auto & chunk : m_chunk_pool)
                 {
                     glGetNamedBufferSubData(chunk.getDrawIndirectBuffer(), 0, sizeof(int unsigned) * 6, mesh_info.data());
                     chunk.setMeshInfo(mesh_info[0]);
                     if (std::abs(chunk.getPosition().x - m_last_chunk_coords.x) > 1 || std::abs(chunk.getPosition().z - m_last_chunk_coords.z) > 1) continue;
-                    glGetNamedBufferSubData(chunk.getMeshVB(), 0, m_max_triangle_count * sizeof(float) * 18, mesh.data());
+                    glGetNamedBufferSubData(chunk.getMeshVB(), 0, maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * sizeof(float) * 18, mesh.data());
                     chunk.setMeshCollider(mesh, m_chunk_collider_material, m_chunk_size_in_units);
                 }
             });
@@ -441,10 +429,10 @@ namespace eng
         m_player.update(delta_time, window, camera, m_spectating);
         camera.setPosition(m_player.getPosition());
         onPlayerMoved(m_player.getPosition());
-        if (!m_spectating && (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS))
-        {
-            castRay(camera); // This is literally still 10x faster than PhysX raycasts
-        }
+        //if (!m_spectating && (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS))
+        //{
+        //    castRay(camera); // This is literally still 10x faster than PhysX raycasts
+        //}
         m_scene->simulate(delta_time);
         m_scene->fetchResults(true);
     }
@@ -455,7 +443,7 @@ namespace eng
         m_chunk_renderer->setUniformMatrix4f("u_view", camera.getViewMatrix());
         m_chunk_renderer->setUniformMatrix4f("u_projection", camera.getProjectionMatrix());
         m_chunk_renderer->setUniformVector3f("u_camera_position_W", camera.getPosition());
-        m_grass_texture->bind(0);
+        m_grass_texture->bind(0); 
         m_dirt_texture->bind(1);
         glBindVertexArray(m_chunk_va);
         for (auto & chunk : m_chunk_pool)
@@ -491,21 +479,6 @@ namespace eng
     void World::setRenderDistance(int unsigned render_distance)
     {
         m_render_distance = render_distance;
-    }
-
-    void World::setPointsPerAxis(int unsigned exponent)
-    {
-        if (exponent < 1) exponent = 1;
-        if (exponent > 5) exponent = 5;
-        m_points_per_axis = static_cast<int>(std::pow(2, exponent));
-        m_resolution = static_cast<int>(std::ceil(static_cast<float>(m_points_per_axis) / WORK_GROUP_SIZE));
-        m_max_triangle_count = (m_points_per_axis - 1) * (m_points_per_axis - 1) * (m_points_per_axis - 1) * 5;
-        initDynamicBuffers();
-    }
-
-    int unsigned World::getPointsPerAxis()
-    {
-        return m_points_per_axis;
     }
 
     std::vector<Shader::BlockVariable> const & World::getGenerationSpec() const

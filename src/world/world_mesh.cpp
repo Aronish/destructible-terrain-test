@@ -2,6 +2,11 @@
 
 namespace eng
 {
+    int unsigned World::getComputeResolution(int unsigned point_width)
+    {
+        return static_cast<int unsigned>(std::ceilf(static_cast<float>(point_width) / WORK_GROUP_SIZE));
+    }
+
     int constexpr sign(float x)
     {
         return (x > 0) - (x < 0);
@@ -87,7 +92,7 @@ namespace eng
                 for (int i = 0; i < 18; ++i)
                 {
                     int x = i % 3 - 1, y = i / 9, z = i / 3 % 3 - 1;
-                    if (sphereCubeIntersect({ x, y, z }, glm::ivec3{ x, y, z } + 1, { m_hit_info_ptr[0], m_hit_info_ptr[1], m_hit_info_ptr[2], m_terraform_radius / m_points_per_axis + 0.1f })) // Intersection test in unit space
+                    if (sphereCubeIntersect({ x, y, z }, glm::ivec3{ x, y, z } + 1, { m_hit_info_ptr[0], m_hit_info_ptr[1], m_hit_info_ptr[2], m_terraform_radius /*/ m_points_per_axis + 0.1f */})) // Intersection test in unit space (terraforming not to be used like this in future)
                     {
                         terraform({ m_hit_info_ptr[19] + x, m_hit_info_ptr[20] + y, m_hit_info_ptr[21] + z });
                         // CHUNK (0, 0) DOES SOMETHING WEIRD
@@ -120,18 +125,31 @@ namespace eng
         glDispatchComputeIndirect(0);
     }
 
-    void World::generateMesh(Chunk * chunk, glm::ivec3 const & chunk_coordinate, uint8_t has_neighbors)
+    void World::generateDensityDistribution(Chunk const & chunk)
+    {
+        m_density_generator->bind();
+        m_density_generator->setUniformUInt("u_points_per_axis", m_chunk_pool.getBaseLodPointWidth());
+        m_density_generator->setUniformVector3f("u_position_offset", static_cast<glm::vec3>(chunk.getPosition()));
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk.getDensityDistributionBuffer());
+        int unsigned resolution = getComputeResolution(m_chunk_pool.getBaseLodPointWidth());
+        glDispatchCompute(resolution, resolution, resolution);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    }
+
+    void World::generateMesh(Chunk const & chunk, uint8_t has_neighbors)
     {
         m_marching_cubes->bind();
         m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
-        m_marching_cubes->setUniformInt("u_points_per_axis", m_points_per_axis);
-        m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk->getMeshVB());
-        glClearNamedBufferData(chunk->getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk->getDrawIndirectBuffer());
-        glNamedBufferSubData(chunk->getDrawIndirectBuffer(), 0, sizeof(INITIAL_INDIRECT_DRAW_CONFIG), INITIAL_INDIRECT_DRAW_CONFIG);
-        bindNeighborChunks(4, has_neighbors, chunk_coordinate);
-        m_marching_cubes->dispatchCompute(m_resolution, m_resolution, m_resolution);
+        m_marching_cubes->setUniformUInt("u_points_per_axis", m_chunk_pool.getBaseLodPointWidth());
+        //m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk.getMeshVB());
+        glClearNamedBufferData(chunk.getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk.getDrawIndirectBuffer());
+        glNamedBufferSubData(chunk.getDrawIndirectBuffer(), 0, sizeof(INITIAL_INDIRECT_DRAW_CONFIG), INITIAL_INDIRECT_DRAW_CONFIG);
+        bindNeighborChunks(4, has_neighbors, chunk.getPosition());
+        int unsigned resolution = getComputeResolution(m_chunk_pool.getBaseLodPointWidth());
+        glDispatchCompute(resolution, resolution, resolution);
+        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT);
     }
 
     void World::terraform(glm::ivec3 const & chunk_coordinate)
@@ -140,18 +158,19 @@ namespace eng
         if (m_chunk_pool.getChunkAt(chunk_coordinate, chunk))
         {
             m_terraform->bind();
-            m_terraform->setUniformInt("u_points_per_axis", m_points_per_axis);
+            m_terraform->setUniformUInt("u_points_per_axis", m_chunk_pool.getBaseLodPointWidth());
             m_terraform->setUniformFloat("u_strength", m_terraform_strength * m_create_destroy_multiplier);
             m_terraform->setUniformFloat("u_radius", m_terraform_radius);
             m_terraform->setUniformVector3f("u_current_chunk", static_cast<glm::vec3>(chunk_coordinate));
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, chunk->getDensityDistributionBuffer());
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_ray_hit_data_ss);
-            m_terraform->dispatchCompute(m_resolution, m_resolution, m_resolution);
+            int unsigned resolution = getComputeResolution(m_chunk_pool.getBaseLodPointWidth());
+            glDispatchCompute(resolution, resolution, resolution);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
             uint8_t has_neighbors = (chunk_coordinate.x != m_last_chunk_coords.x - m_render_distance) | ((chunk_coordinate.z != m_last_chunk_coords.z - m_render_distance) << 1) | ((chunk_coordinate.y == 1) << 2);
 
-            generateMesh(&(*chunk), chunk_coordinate, has_neighbors);
+            generateMesh(*chunk, has_neighbors);
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
             glFlush();
         }

@@ -32,6 +32,8 @@ uniform vec3 u_color = vec3(0.22f, 0.42f, 0.046f);
 layout (binding = 0) uniform sampler2D s_grass;
 layout (binding = 1) uniform sampler2D s_dirt;
 
+const float c_fog_start = 50, c_fog_end = 70;
+
 out vec4 o_color;
 
 void main()
@@ -49,7 +51,7 @@ void main()
     vec3 z_axis = texture(s_dirt, v_position_W.xy * scale_factor).xyz;
 
     vec3 color = x_axis * blending.x + y_axis * blending.y + z_axis * blending.z;
-    //color *= normalize(vec3(0.4f, 1.25f, 1.0f));
+    color *= normalize(vec3(0.4f, 1.25f, 1.0f));
 
     // Directional lighting
     vec3 view_direction = normalize(u_camera_position_W - v_position_W);
@@ -61,5 +63,12 @@ void main()
     vec3 diffuse = color * diffuse_factor;
     vec3 ambient = vec3(0.05f * steepness);
     vec3 specular = vec3(0.05f) * pow(max(dot(normal, half_way_direction), 0.0f), 16.0f);
-    o_color = vec4((ambient + diffuse + specular) * 1.6f, 1.0f);
+
+    // Distance fog
+    float distance = distance(v_position_W, u_camera_position_W);
+    float fog_factor = clamp((distance - c_fog_start) / (c_fog_end - c_fog_start), 0.0f, 1.0f);
+
+    vec4 final_color = mix(vec4(ambient + diffuse + specular, 1.0f), vec4(0.79f, 0.94f, 1.0f, 1.0f), fog_factor);
+    //final_color.a = 1.0f - fog_factor;
+    o_color = final_color;
 }

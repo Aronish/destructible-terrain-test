@@ -4,7 +4,7 @@
 
 namespace eng
 {
-    void DebugControls::onShaderBlockChanged(int num_variables)
+    void DebugControls::onShaderBlockChanged(size_t num_variables)
     {
         m_generation_data.clear();
         m_generation_data.resize(num_variables);

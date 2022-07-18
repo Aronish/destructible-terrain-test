@@ -1,8 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-#include <string>
-
 #include "world/world.hpp"
 
 namespace eng
@@ -20,7 +17,7 @@ namespace eng
 		std::vector<IntOrFloat> m_generation_data;
 		bool m_tweakable_lac_per{};
 	public:
-		void onShaderBlockChanged(int num_variables);
+		void onShaderBlockChanged(size_t num_variables);
 		void loadDefaultValues(std::vector<Shader::BlockVariable> const & spec);
 		void saveDefaultValues(std::vector<Shader::BlockVariable> const & spec);
 		bool render(World & world);

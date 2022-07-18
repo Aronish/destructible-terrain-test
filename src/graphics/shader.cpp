@@ -24,19 +24,19 @@ namespace eng
         std::unordered_map<GLenum, std::string> shader_sources;
 
         char const * type_token = "#shader";
-		size_t shader_type_token_length = std::strlen(type_token);
-		size_t pos = source.find(type_token, 0);                                     //Start of line with #shader <shader_type>
-		while (pos != std::string::npos)
-		{
-			size_t eol = source.find_first_of("\r\n", pos);                         //End of shader type directive line
-			size_t type_begin = pos + shader_type_token_length + 1;                 //Start of shader type after #shader
-			std::string shader_type = source.substr(type_begin, eol - type_begin);
+        size_t shader_type_token_length = std::strlen(type_token);
+        size_t pos = source.find(type_token, 0);                                     //Start of line with #shader <shader_type>
+        while (pos != std::string::npos)
+        {
+            size_t eol = source.find_first_of("\r\n", pos);                         //End of shader type directive line
+            size_t type_begin = pos + shader_type_token_length + 1;                 //Start of shader type after #shader
+            std::string shader_type = source.substr(type_begin, eol - type_begin);
 
-			size_t next_line_pos = source.find_first_not_of("\r\n", eol);             //Start of shader code after #shader directive line
-			pos = source.find(type_token, next_line_pos);                              //Start of next #shader directive line
+            size_t next_line_pos = source.find_first_not_of("\r\n", eol);             //Start of shader code after #shader directive line
+            pos = source.find(type_token, next_line_pos);                              //Start of next #shader directive line
 
-			shader_sources[customShaderTypeToGLenum(shader_type)] = (pos == std::string::npos) ? source.substr(next_line_pos) : source.substr(next_line_pos, pos - next_line_pos);
-		}
+            shader_sources[customShaderTypeToGLenum(shader_type)] = (pos == std::string::npos) ? source.substr(next_line_pos) : source.substr(next_line_pos, pos - next_line_pos);
+        }
         return shader_sources;
     }
 
@@ -133,7 +133,7 @@ namespace eng
             GLint values[num_properties];
             glGetProgramResourceiv(m_id, GL_UNIFORM, uniform, num_properties, properties, num_properties, nullptr, values);
             if (values[0] != -1) continue; // Skips uniforms in blocks
-            
+
             std::string name(values[1], ' ');
             glGetProgramResourceName(m_id, GL_UNIFORM, uniform, static_cast<GLsizei>(values[1]), nullptr, name.data());
             name.pop_back(); // \0 means nothing in an std::string, but this mf ^ will add one regardless
@@ -151,87 +151,63 @@ namespace eng
         glUseProgram(m_id);
     }
 
-    void Shader::dispatchCompute(GLint num_groups_x, GLint num_groups_y, GLint num_groups_z) const
-    {
-        glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
-    }
+#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
+    #if ENG_VERBOSE_UNIFORM_CHECKER
+        #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name); return; }
+    #else
+        #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { return; }
+    #endif
+#else
+    #define ENG_UNIFORM_CHECKER
+#endif
 
     void Shader::setUniformMatrix3f(char const * name, glm::mat3 const & data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(data));
     }
 
     void Shader::setUniformMatrix4f(char const * name, glm::mat4 const & data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(data));
     }
 
     void Shader::setUniformVector2f(char const * name, glm::vec2 const & data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Vector2f uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniform2f(location, data.x, data.y);
     }
 
     void Shader::setUniformVector3f(char const * name, glm::vec3 const & data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Vector3f uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniform3f(location, data.x, data.y, data.z);
     }
 
     void Shader::setUniformFloat(char const * name, float data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Float uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniform1f(location, data);
     }
 
     void Shader::setUniformInt(char const * name, int data)
     {
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-        if (m_uniform_locations.find(name) == m_uniform_locations.end())
-        {
-            ENG_LOG_F("Int uniform with name %s does not exist!", name);
-            return;
-        }
-#endif
+        ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniform1i(location, data);
+    }
+
+    void Shader::setUniformUInt(char const * name, int unsigned data)
+    {
+        ENG_UNIFORM_CHECKER;
+        GLuint location = m_uniform_locations.at(name);
+        glUniform1ui(location, data);
     }
 
     std::vector<Shader::BlockVariable> Shader::getBlockUniformInfo()

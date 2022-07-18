@@ -3,8 +3,7 @@
 
 const uint WORK_GROUP_SIZE = 10;
 
-uniform int u_points_per_axis;
-uniform int u_resolution;
+uniform uint u_points_per_axis;
 uniform vec3 u_position_offset;
 
 layout(std140, binding = 0) uniform WorldGenerationConfig
@@ -156,11 +155,12 @@ float layeredNoise(vec3 position, int octaves, float frequency, float lacunarity
 
 void main()
 {
-    int points_from_zero = u_points_per_axis - 1; // ppa is a count, can't be used as index
+    uint points_from_zero = u_points_per_axis - 1; // ppa is a count, can't be used as index
+    uint resolution = uint(ceil(float(u_points_per_axis) / WORK_GROUP_SIZE));
     if (gl_GlobalInvocationID.x > points_from_zero || gl_GlobalInvocationID.y > points_from_zero || gl_GlobalInvocationID.z > points_from_zero) return;
-    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * float(points_from_zero)) / u_resolution,
-          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * float(points_from_zero)) / u_resolution,
-          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(points_from_zero)) / u_resolution;
+    float x = (float(gl_GlobalInvocationID.x) + u_position_offset.x * float(points_from_zero)) / resolution,
+          y = (float(gl_GlobalInvocationID.y) + u_position_offset.y * float(points_from_zero)) / resolution,
+          z = (float(gl_GlobalInvocationID.z) + u_position_offset.z * float(points_from_zero)) / resolution;
 
     float final_density = layeredNoise(vec3(x, y, z), u_octaves_3d, u_frequency_3d, u_lacunarity_3d, u_persistence_3d);
     

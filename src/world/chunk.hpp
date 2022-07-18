@@ -13,6 +13,11 @@
 
 namespace eng
 {
+    int unsigned constexpr maxChunkTriangles(int unsigned const point_width)
+    {
+        return (point_width - 1) * (point_width - 1) * (point_width - 1) * 5;
+    }
+
     class Chunk
     {
     private:
@@ -24,8 +29,8 @@ namespace eng
     private:
         GLuint m_mesh_vb, m_density_distribution_ss, m_draw_indirect_buffer;
         int unsigned m_vertex_count{};
+        bool m_active{}, m_has_valid_collider{};
         physx::PxRigidStatic * m_static_rigid_body;
-        bool m_active = false, m_has_valid_collider;
 
         GameSystem & r_game_system;
         union
@@ -35,10 +40,10 @@ namespace eng
         };
 
     public:
-        Chunk(GameSystem & game_system, size_t max_triangle_count, size_t points_per_chunk_axis);
+        Chunk(GameSystem & game_system, int unsigned base_lod_point_width);
 
         void releasePhysics();
-        void setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis);
+        void setMeshConfig(int unsigned point_width);
         void setMeshCollider(std::vector<float> const & mesh, physx::PxMaterial * material, float chunk_size);
         void removeCollider();
         void setMeshInfo(int unsigned vertex_count);
@@ -63,19 +68,20 @@ namespace eng
     private:
         std::vector<Chunk> m_chunks;
         Chunk * m_first_unused{};
-        size_t m_max_triangle_count{}, m_points_per_chunk_axis{};
+        int unsigned m_base_lod_point_width{ 16 };
 
         GameSystem & r_game_system;
     public:
         ChunkPool(GameSystem & game_system);
         ~ChunkPool();
-        void initialize(size_t initial_size, size_t max_triangle_count, size_t points_per_chunk_axis);
-        void setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis);
+        void initialize(size_t initial_size, int unsigned base_lod_point_width);
         void setPoolSize(size_t size);
         bool activateChunk(Chunk *& out_chunk, glm::ivec3 position, float chunk_size);
         void deactivateChunk(Chunk * chunk);
         bool getChunkAt(glm::ivec3 const & position, std::vector<Chunk>::iterator & out_chunk);
         bool hasChunkAt(glm::ivec3 const & position);
+
+        int unsigned getBaseLodPointWidth() const;
 
         std::vector<Chunk>::iterator begin() { return m_chunks.begin(); }
         std::vector<Chunk>::iterator end() { return m_chunks.end(); }

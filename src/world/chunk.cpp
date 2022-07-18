@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 
 #include "graphics/vertex_buffer_layout.hpp"
 #include "logger.hpp"
@@ -17,18 +18,16 @@ namespace eng
         s_indices.shrink_to_fit();
     }
 
-    Chunk::Chunk(GameSystem & game_system, size_t max_triangle_count, size_t points_per_chunk_axis) : r_game_system(game_system)
+    Chunk::Chunk(GameSystem & game_system, int unsigned base_lod_point_width) : r_game_system(game_system), m_next_unused(nullptr)
     {
         m_mesh_vb = r_game_system.getAssetManager().createBuffer();
         m_density_distribution_ss = r_game_system.getAssetManager().createBuffer();
-        setMeshConfig(max_triangle_count, points_per_chunk_axis);
+        setMeshConfig(base_lod_point_width);
 
         m_draw_indirect_buffer = r_game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_draw_indirect_buffer, sizeof(World::INITIAL_INDIRECT_DRAW_CONFIG), &World::INITIAL_INDIRECT_DRAW_CONFIG, GL_DYNAMIC_STORAGE_BIT | GL_CLIENT_STORAGE_BIT);
 
         m_static_rigid_body = r_game_system.getPhysx()->createRigidStatic(physx::PxTransform(physx::PxIdentity));
-
-        m_next_unused = nullptr;
     }
 
     void Chunk::releasePhysics()
@@ -36,10 +35,10 @@ namespace eng
         m_static_rigid_body->release();
     }
     
-    void Chunk::setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis)
+    void Chunk::setMeshConfig(int unsigned point_width)
     {
-        glNamedBufferData(m_mesh_vb, max_triangle_count * sizeof(float) * 18, nullptr, GL_DYNAMIC_COPY);
-        glNamedBufferData(m_density_distribution_ss, points_per_chunk_axis * points_per_chunk_axis * points_per_chunk_axis * sizeof(float), nullptr, GL_DYNAMIC_COPY);
+        glNamedBufferData(m_mesh_vb, maxChunkTriangles(point_width) * sizeof(float) * 18, nullptr, GL_DYNAMIC_COPY);
+        glNamedBufferData(m_density_distribution_ss, point_width * point_width * point_width * sizeof(float), nullptr, GL_DYNAMIC_COPY);
     }
 
 #define COOK_REALTIME 0
@@ -167,22 +166,11 @@ namespace eng
         }
     }
 
-    void ChunkPool::initialize(size_t initial_size, size_t max_triangle_count, size_t points_per_chunk_axis)
+    void ChunkPool::initialize(size_t initial_size, int unsigned base_lod_point_width)
     {
-        setMeshConfig(max_triangle_count, points_per_chunk_axis);
         setPoolSize(initial_size);
-    }
-
-    void ChunkPool::setMeshConfig(size_t max_triangle_count, size_t points_per_chunk_axis)
-    {
-        m_max_triangle_count = max_triangle_count;
-        m_points_per_chunk_axis = points_per_chunk_axis;
-
-        Chunk::generateIndices(3 * max_triangle_count);
-        for (auto & chunk : m_chunks)
-        {
-            chunk.setMeshConfig(max_triangle_count, points_per_chunk_axis);
-        }
+        m_base_lod_point_width = base_lod_point_width;
+        Chunk::generateIndices(3 * maxChunkTriangles(base_lod_point_width));
     }
 
     void ChunkPool::setPoolSize(size_t size)
@@ -192,7 +180,7 @@ namespace eng
         // Allocate all chunks and setup free list
         for (size_t i = 0; i < size; ++i)
         {
-            Chunk & chunk = m_chunks.emplace_back(r_game_system, m_max_triangle_count, m_points_per_chunk_axis);
+            Chunk & chunk = m_chunks.emplace_back(r_game_system, m_base_lod_point_width);
             if (i > 0) m_chunks[i - 1].deactivate(&chunk);
         }
         m_first_unused = &m_chunks[0];
@@ -234,5 +222,10 @@ namespace eng
         {
             return chunk.isActive() && chunk.getPosition() == position;
         }) != end();
+    }
+
+    int unsigned ChunkPool::getBaseLodPointWidth() const
+    {
+        return m_base_lod_point_width;
     }
 }

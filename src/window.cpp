@@ -11,9 +11,9 @@ namespace eng
     {
         if (!glfwInit()) ENG_LOG("[GLFW]: glfwInit failed!");
 #ifdef ENG_DEBUG
-        glfwSetErrorCallback([](int, char const * description)
+        glfwSetErrorCallback([](int error_code, char const * description)
         {
-            ENG_LOG(description);
+            ENG_LOG_F("(%d): %s", error_code, description);
         });
         glfwWindowHint(GLFW_CONTEXT_DEBUG, GLFW_TRUE);
 #endif
@@ -32,7 +32,7 @@ namespace eng
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-#define ENG_GL_DEBUG_LOG 1
+#define ENG_GL_DEBUG_LOG 1,
 #if defined(ENG_DEBUG) && ENG_GL_DEBUG_LOG
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(

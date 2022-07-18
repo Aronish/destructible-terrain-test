@@ -10,7 +10,8 @@
 #include <string_view>
 #include <unordered_map>
 
-#define ENG_DETECT_INACTIVE_UNIFORMS 0
+#define ENG_DETECT_INACTIVE_UNIFORMS 1
+#define ENG_VERBOSE_UNIFORM_CHECKER 0
 
 namespace eng
 {
@@ -33,7 +34,6 @@ namespace eng
         void compile(char const * file_path);
 
         void bind() const;
-        void dispatchCompute(GLint num_groups_x, GLint num_groups_y, GLint num_groups_z) const;
 
         void setUniformMatrix3f(char const * name, glm::mat3 const & data);
         void setUniformMatrix4f(char const * name, glm::mat4 const & data);
@@ -41,6 +41,7 @@ namespace eng
         void setUniformVector3f(char const * name, glm::vec3 const & data);
         void setUniformFloat(char const * name, float data);
         void setUniformInt(char const * name, int data);
+        void setUniformUInt(char const * name, int unsigned data);
 
         std::vector<BlockVariable> getBlockUniformInfo();
     };

@@ -3,12 +3,12 @@ u_amplitude_3d:0
 u_exponent_2d:0
 u_exponent_3d:0
 u_frequency_2d:0
-u_frequency_3d:0.02
+u_frequency_3d:0.015
 u_lacunarity_2d:0
-u_lacunarity_3d:2
-u_noise_weight_3d:4.425
+u_lacunarity_3d:1.925
+u_noise_weight_3d:7.27
 u_octaves_2d:0
 u_octaves_3d:6
 u_persistence_2d:0
-u_persistence_3d:0.405
-u_weight_multiplier_3d:3.325
+u_persistence_3d:0.44
+u_weight_multiplier_3d:3.65
