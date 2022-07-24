@@ -294,7 +294,7 @@ namespace eng
         m_hit_info_ptr = reinterpret_cast<float *>(glMapNamedBuffer(m_ray_hit_data_ss, GL_READ_WRITE));
 
         m_chunk_va = game_system.getAssetManager().createVertexArray();
-        VertexArray::setVertexArrayFormat(m_chunk_va, VertexDataLayout::POSITION_NORMAL_3F);
+        VertexArray::setVertexArrayFormat(m_chunk_va, VertexDataLayout::FLOAT3_FLOAT3);
 
         m_dispatch_indirect_buffer = game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_dispatch_indirect_buffer, sizeof(int unsigned) * 3, nullptr, GL_DYNAMIC_STORAGE_BIT);
@@ -450,7 +450,7 @@ namespace eng
         {
             if (!chunk.isActive()) continue;
             m_chunk_renderer->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3(m_chunk_size_in_units)) * glm::translate(glm::mat4(1.0f), static_cast<glm::vec3>(chunk.getPosition())));
-            VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::POSITION_NORMAL_3F);
+            VertexArray::bindVertexBuffer(m_chunk_va, chunk.getMeshVB(), VertexDataLayout::FLOAT3_FLOAT3);
             glBindBuffer(GL_DRAW_INDIRECT_BUFFER, chunk.getDrawIndirectBuffer());
             glDrawArraysIndirect(GL_TRIANGLES, nullptr);
         }

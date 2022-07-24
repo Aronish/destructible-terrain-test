@@ -33,8 +33,10 @@ namespace eng
     class VertexDataLayout
     {
     public:
-        VertexDataLayout const static POSITION_NORMAL_3F;
-        VertexDataLayout const static POSIITON_UV_2F;
+        VertexDataLayout const static FLOAT2;
+        VertexDataLayout const static FLOAT2_FLOAT2;
+        VertexDataLayout const static FLOAT3;
+        VertexDataLayout const static FLOAT3_FLOAT3;
     private:
         std::vector<VertexDataElement> m_elements;
         int unsigned m_stride{};

@@ -10,8 +10,8 @@
 #include <string_view>
 #include <unordered_map>
 
-#define ENG_DETECT_INACTIVE_UNIFORMS 1
-#define ENG_VERBOSE_UNIFORM_CHECKER 0
+#define ENG_CHECK_UNIFORMS 1
+#define ENG_CHECK_UNIFORMS_VERBOSE 0
 
 namespace eng
 {
@@ -37,8 +37,11 @@ namespace eng
 
         void setUniformMatrix3f(char const * name, glm::mat3 const & data);
         void setUniformMatrix4f(char const * name, glm::mat4 const & data);
+
         void setUniformVector2f(char const * name, glm::vec2 const & data);
         void setUniformVector3f(char const * name, glm::vec3 const & data);
+        void setUniformVector4f(char const * name, glm::vec4 const & data);
+
         void setUniformFloat(char const * name, float data);
         void setUniformInt(char const * name, int data);
         void setUniformUInt(char const * name, int unsigned data);

@@ -2,8 +2,10 @@
 
 namespace eng
 {
-    VertexDataLayout const VertexDataLayout::POSITION_NORMAL_3F = {{{ 3, GL_FLOAT }, { 3, GL_FLOAT }}};
-    VertexDataLayout const VertexDataLayout::POSIITON_UV_2F = {{{ 2, GL_FLOAT }, { 2, GL_FLOAT }}};
+    VertexDataLayout const VertexDataLayout::FLOAT2         = { {{ 2, GL_FLOAT }} };
+    VertexDataLayout const VertexDataLayout::FLOAT2_FLOAT2  = { {{ 2, GL_FLOAT }, { 2, GL_FLOAT }} };
+    VertexDataLayout const VertexDataLayout::FLOAT3         = { {{ 3, GL_FLOAT }} };
+    VertexDataLayout const VertexDataLayout::FLOAT3_FLOAT3  = { {{ 3, GL_FLOAT }, { 3, GL_FLOAT }} };
 
     VertexDataElement::VertexDataElement(int unsigned size, GLenum type) : m_size(size), m_type_size(GLTypeToSize(type)), m_type(type) {}
 

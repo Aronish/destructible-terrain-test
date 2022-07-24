@@ -57,7 +57,7 @@ namespace eng
         glNamedBufferStorage(m_crosshair_vb, sizeof(quad_vertices), quad_vertices, 0);
 
         m_crosshair_va = m_game_system.getAssetManager().createVertexArray();
-        VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
+        VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::FLOAT2_FLOAT2);
         VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
         m_debug_controls.onShaderBlockChanged(m_world.getGenerationSpec().size());

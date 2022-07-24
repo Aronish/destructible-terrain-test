@@ -151,8 +151,8 @@ namespace eng
         glUseProgram(m_id);
     }
 
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
-    #if ENG_VERBOSE_UNIFORM_CHECKER
+#if defined(ENG_DEBUG) && ENG_CHECK_UNIFORMS
+    #if ENG_CHECK_UNIFORMS_VERBOSE
         #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name); return; }
     #else
         #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { return; }
@@ -187,6 +187,13 @@ namespace eng
         ENG_UNIFORM_CHECKER;
         GLuint location = m_uniform_locations.at(name);
         glUniform3f(location, data.x, data.y, data.z);
+    }
+
+    void Shader::setUniformVector4f(char const * name, glm::vec4 const & data)
+    {
+        ENG_UNIFORM_CHECKER;
+        GLuint location = m_uniform_locations.at(name);
+        glUniform4f(location, data.x, data.y, data.z, data.w);
     }
 
     void Shader::setUniformFloat(char const * name, float data)
