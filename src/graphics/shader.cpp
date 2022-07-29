@@ -25,15 +25,15 @@ namespace eng
 
         char const * type_token = "#shader";
         size_t shader_type_token_length = std::strlen(type_token);
-        size_t pos = source.find(type_token, 0);                                     //Start of line with #shader <shader_type>
+        size_t pos = source.find(type_token, 0);                                    //Start of line with #shader <shader_type>
         while (pos != std::string::npos)
         {
             size_t eol = source.find_first_of("\r\n", pos);                         //End of shader type directive line
             size_t type_begin = pos + shader_type_token_length + 1;                 //Start of shader type after #shader
             std::string shader_type = source.substr(type_begin, eol - type_begin);
 
-            size_t next_line_pos = source.find_first_not_of("\r\n", eol);             //Start of shader code after #shader directive line
-            pos = source.find(type_token, next_line_pos);                              //Start of next #shader directive line
+            size_t next_line_pos = source.find_first_not_of("\r\n", eol);           //Start of shader code after #shader directive line
+            pos = source.find(type_token, next_line_pos);                           //Start of next #shader directive line
 
             shader_sources[customShaderTypeToGLenum(shader_type)] = (pos == std::string::npos) ? source.substr(next_line_pos) : source.substr(next_line_pos, pos - next_line_pos);
         }

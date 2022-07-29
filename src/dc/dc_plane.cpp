@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <chrono>
 
 #include "dc/qef.hpp"
 #include "graphics/vertex_array.hpp"
@@ -10,11 +11,13 @@ namespace eng
 {
     DCPlane::DCPlane(GameSystem & game_system)
 	{
+        m_dual_contouring = game_system.getAssetManager().getShader("res/shaders/dual_contouring.glsl");
+        m_density_generator = game_system.getAssetManager().getShader("res/shaders/generate_dc_points.glsl");
+        m_dc_triangulator = game_system.getAssetManager().getShader("res/shaders/dc_triangulation.glsl");
+#if 0   
         m_quad_va = game_system.getAssetManager().createVertexArray();
         m_quad_data = game_system.getAssetManager().createBuffer();
         m_quad_indices = game_system.getAssetManager().createBuffer();
-
-        m_dual_contouring = game_system.getAssetManager().getShader("res/shaders/dual_contouring.glsl");
 
         int constexpr WIDTH = 20;
 
@@ -22,13 +25,16 @@ namespace eng
         {
             x = x - WIDTH / 2.0f;
             y = y - WIDTH / 2.0f;
-            return x * x + y * y + x * y - WIDTH / 1.2f;
+            return (x < 15.0f && x > 5.0f && y < 15.0f && y > 5.0f) ? -1.0f : 1.0f;
         };
         auto circle_grad = [](float x, float y) -> glm::vec2
         {
             x = x - WIDTH / 2.0f;
             y = y - WIDTH / 2.0f;
-            return { 2 * x + y, 2 * y + x };
+            if (y - abs(x) > 0) return { 0.0f, 1.0f };
+            else if (y + abs(x) < 0) return { 0.0f, -1.0f };
+            else if (x - abs(y) > 0) return { 1.0f, 0.0f };
+            else if (x + abs(y) < 0) return { -1.0f, 0.0f };
         };
 
         // Generate density
@@ -160,11 +166,49 @@ namespace eng
         //glNamedBufferData(m_quad_indices, indices.size() * sizeof(int), indices.data(), GL_STATIC_DRAW);
         VertexArray::associateVertexBuffer(m_quad_va, m_quad_data, VertexDataLayout::FLOAT2);
         //VertexArray::associateIndexBuffer(m_quad_va, m_quad_indices, indices.data(), indices.size() * sizeof(int));
+#endif
+        m_density_distribution = game_system.getAssetManager().createBuffer();
+        glNamedBufferStorage(m_density_distribution, WORK_GROUP_SIZE * WORK_GROUP_SIZE * WORK_GROUP_SIZE * sizeof(float), nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        m_dc_vertices = game_system.getAssetManager().createBuffer();
+        glNamedBufferStorage(m_dc_vertices, (WORK_GROUP_SIZE - 1) * (WORK_GROUP_SIZE - 1) * (WORK_GROUP_SIZE - 1) * sizeof(float) * 4, nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        m_di = game_system.getAssetManager().createBuffer();
+        glNamedBufferStorage(m_di, sizeof(s_di_config), s_di_config, GL_DYNAMIC_STORAGE_BIT);
+
+        m_mesh = game_system.getAssetManager().createBuffer();
+        glNamedBufferStorage(m_mesh, (WORK_GROUP_SIZE - 2) * (WORK_GROUP_SIZE - 2) * (WORK_GROUP_SIZE - 2) * sizeof(float) * 108, nullptr, GL_DYNAMIC_STORAGE_BIT);
+
+        m_va = game_system.getAssetManager().createVertexArray();
+        VertexArray::associateVertexBuffer(m_va, m_mesh, VertexDataLayout::FLOAT3);
+
+        generate();
 	}
 
-    GLuint DCPlane::getVertexArray() const
+    void DCPlane::generate()
     {
-        return m_quad_va;
+        m_density_generator->compile("res/shaders/generate_dc_points.glsl");
+        m_dual_contouring->compile("res/shaders/dual_contouring.glsl");
+        m_dc_triangulator->compile("res/shaders/dc_triangulation.glsl");
+        auto start = std::chrono::high_resolution_clock::now();
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_density_distribution);
+        m_density_generator->bind();
+        glDispatchCompute(1, 1, 1);
+
+        glClearNamedBufferData(m_dc_vertices, GL_R32F, GL_RED, GL_FLOAT, nullptr);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_dc_vertices);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_di);
+        glNamedBufferSubData(m_di, 0, sizeof(s_di_config), s_di_config);
+        m_dual_contouring->bind();
+        glDispatchCompute(1, 1, 1);
+
+        glClearNamedBufferData(m_mesh, GL_R32F, GL_RED, GL_FLOAT, nullptr);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_mesh);
+        m_dc_triangulator->bind();
+        glDispatchCompute(1, 1, 1);
+
+        auto end = std::chrono::high_resolution_clock::now();
+        ENG_LOG_F("Took: %lld ns", (end - start).count());
     }
 
     int DCPlane::getIndexCount() const

@@ -15,7 +15,10 @@ namespace eng
 	{
         glfwSwapInterval(1);
         glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         glClearColor(0.79f, 0.94f, 1.0f, 1.0f);
+        glPointSize(4.0f);
 
         m_quad_shader = m_game_system.getAssetManager().getShader("res/shaders/simple.glsl");
 
@@ -30,6 +33,10 @@ namespace eng
         EventDispatcher::dispatch<KeyPressedEvent>(event, [this](KeyPressedEvent const & event)
         {
             if (event.m_key_code == GLFW_KEY_E) m_window.setCursorVisibility(!m_window.isCursorVisible());
+            if (event.m_key_code == GLFW_KEY_R)
+            {
+                m_plane.generate();
+            }
         });
 	}
 
@@ -49,22 +56,14 @@ namespace eng
 	void DCApplication::render()
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        if (!m_plane.meshEmpty())
-        {
-            m_quad_shader->bind();
-            m_quad_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3{ 0.2f }));
-            m_quad_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
-            m_quad_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
-            m_quad_shader->setUniformVector4f("u_color", { 0.8f, 0.2f, 0.3f, 1.0f });
-            glBindVertexArray(m_plane.getVertexArray());
-            glDrawArrays(
-#ifdef POINTS
-                GL_POINTS
-#else
-                GL_TRIANGLES
-#endif
-            , 0, m_plane.getIndexCount());
-        };
+        m_quad_shader->bind();
+        m_quad_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3{ 0.2f }));
+        m_quad_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
+        m_quad_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
+        m_quad_shader->setUniformVector4f("u_color", { 0.8f, 0.2f, 0.3f, 1.0f });
+        glBindVertexArray(m_plane.m_va);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_plane.m_di);
+        glDrawArraysIndirect(GL_TRIANGLES, nullptr);
 		glfwSwapBuffers(m_window.getWindowHandle());
 	}
 
