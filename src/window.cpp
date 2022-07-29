@@ -32,7 +32,7 @@ namespace eng
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-#define ENG_GL_DEBUG_LOG 1,
+#define ENG_GL_DEBUG_LOG 1
 #if defined(ENG_DEBUG) && ENG_GL_DEBUG_LOG
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(

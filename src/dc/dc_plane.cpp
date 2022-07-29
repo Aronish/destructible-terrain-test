@@ -13,7 +13,7 @@ namespace eng
 	{
         m_dual_contouring = game_system.getAssetManager().getShader("res/shaders/dual_contouring.glsl");
         m_density_generator = game_system.getAssetManager().getShader("res/shaders/generate_dc_points.glsl");
-        m_dc_triangulator = game_system.getAssetManager().getShader("res/shaders/dc_triangulation.glsl");
+        m_dc_triangulator = game_system.getAssetManager().getShader("res/shaders/dc_triangulator.glsl");
 #if 0   
         m_quad_va = game_system.getAssetManager().createVertexArray();
         m_quad_data = game_system.getAssetManager().createBuffer();
@@ -189,7 +189,7 @@ namespace eng
     {
         m_density_generator->compile("res/shaders/generate_dc_points.glsl");
         m_dual_contouring->compile("res/shaders/dual_contouring.glsl");
-        m_dc_triangulator->compile("res/shaders/dc_triangulation.glsl");
+        m_dc_triangulator->compile("res/shaders/dc_triangulator.glsl");
         auto start = std::chrono::high_resolution_clock::now();
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_density_distribution);
         m_density_generator->bind();

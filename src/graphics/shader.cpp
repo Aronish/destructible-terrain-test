@@ -16,10 +16,38 @@ namespace eng
         return 0;
     }
 
+    static void replaceAll(std::string & inout, std::string_view target, std::string_view replacement)
+    {
+        std::size_t count{};
+        for (std::string::size_type pos{}; inout.npos != (pos = inout.find(target.data(), pos, target.length())); pos += replacement.length(), ++count)
+        {
+            inout.replace(pos, target.length(), replacement.data(), replacement.length());
+        }
+    }
+
     static std::unordered_map<GLenum, std::string> parseCustomShader(char const * file_path)
     {
         std::ifstream file(file_path, std::ios::in);
         std::string source{ std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>() };
+        // Preprocess #include
+        char const * include_token = "#include";
+        for (size_t token_pos{ source.find(include_token, 0) }; token_pos != std::string::npos; token_pos = source.find(include_token, 0))
+        {
+            size_t start = source.find('"', token_pos) + 1;
+            size_t end = source.find('"', start);
+            size_t eol = source.find("\n", end);
+            if (start > eol || start == std::string::npos || end > eol || end == std::string::npos)
+            {
+                ENG_LOG_F("Invalid #include in shader %s!", file_path);
+                break;
+            }
+            std::string path = source.substr(start, end - start);
+
+            std::ifstream include_file("res/shaders/include/" + path, std::ios::in);
+            std::string include_source{ std::istreambuf_iterator<char>(include_file), std::istreambuf_iterator<char>() };
+            source.replace(token_pos, eol - token_pos, include_source.data(), include_source.length());
+        }
+
         // Break shaders according to #shader <shader_type>
         std::unordered_map<GLenum, std::string> shader_sources;
 

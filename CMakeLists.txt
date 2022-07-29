@@ -35,10 +35,14 @@ function(copy_resource resource_folder file_type)
     file(GLOB resources "${CMAKE_CURRENT_SOURCE_DIR}/${resource_folder}/*${file_type}")
     foreach(resource ${resources})
         get_filename_component(outputFileName ${resource} NAME)
-        configure_file(${resource} ${CMAKE_CURRENT_BINARY_DIR}/${resource_folder}/${outputFileName} COPYONLY)
+        get_filename_component(extension ${resource} EXT)
+        if (NOT "${extension}" STREQUAL "") # Don't try to copy a directory as a file
+            configure_file(${resource} ${CMAKE_CURRENT_BINARY_DIR}/${resource_folder}/${outputFileName} COPYONLY)
+        endif()
     endforeach()
 endfunction()
 
+copy_resource("res/shaders/include" "")
 copy_resource("res/shaders" "")
 copy_resource("res/textures" "")
 
