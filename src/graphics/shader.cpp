@@ -12,6 +12,7 @@ namespace eng
         if (shader_type_token == "vert")        return GL_VERTEX_SHADER;
         if (shader_type_token == "frag")        return GL_FRAGMENT_SHADER;
         if (shader_type_token == "comp")        return GL_COMPUTE_SHADER;
+        if (shader_type_token == "geom")        return GL_GEOMETRY_SHADER;
         ENG_LOG_F("Unknown or unsupported shader type %s", shader_type_token.c_str());
         return 0;
     }
@@ -71,10 +72,10 @@ namespace eng
     static std::vector<GLuint> compileCustomShaders(std::unordered_map<GLenum, std::string> const & shader_sources)
     {
         std::vector<GLuint> compiled_shaders;
-        for (auto & map_pair : shader_sources)
+        for (auto & [type, name] : shader_sources)
         {
-            GLuint shader_handle = glCreateShader(map_pair.first);
-            const GLchar * src = map_pair.second.c_str();
+            GLuint shader_handle = glCreateShader(type);
+            const GLchar * src = name.c_str();
             glShaderSource(shader_handle, 1, &src, nullptr);
             glCompileShader(shader_handle);
 
@@ -83,7 +84,7 @@ namespace eng
             glGetShaderiv(shader_handle, GL_COMPILE_STATUS, &is_compiled);
             if (is_compiled == GL_FALSE)
             {
-                ENG_LOG_F("Failed to compile type %d shader!", map_pair.first);
+                ENG_LOG_F("Failed to compile type %d shader!", type);
 
                 constexpr GLsizei MAX_LOG_LENGTH = 512;
                 GLsizei log_length = 0;
@@ -108,11 +109,16 @@ namespace eng
     void Shader::compile(char const * file_path)
     {
         ENG_LOG_F("Compiled shader %s", file_path);
-        std::vector<GLuint> compiled_shaders = compileCustomShaders(parseCustomShader(file_path));
 
-        m_id = glCreateProgram();
+        if (m_id == 0) m_id = glCreateProgram();
+        else
+        {
+            for (auto shader : m_attached_shaders) glDetachShader(m_id, shader);
+        }
+        
+        m_attached_shaders = compileCustomShaders(parseCustomShader(file_path));
 
-        for (auto & shader_handle : compiled_shaders)
+        for (auto shader_handle : m_attached_shaders)
         {
             glAttachShader(m_id, shader_handle);
         }
@@ -134,7 +140,7 @@ namespace eng
 
             glDeleteProgram(m_id);
 
-            for (auto & shader_handle : compiled_shaders)
+            for (auto shader_handle : m_attached_shaders)
             {
                 glDeleteShader(shader_handle);
             }
@@ -145,7 +151,7 @@ namespace eng
         }
 #endif
 
-        for (auto & shader_handle : compiled_shaders)
+        for (auto shader_handle : m_attached_shaders)
         {
             glDeleteShader(shader_handle);
         }
@@ -179,7 +185,7 @@ namespace eng
         glUseProgram(m_id);
     }
 
-#if defined(ENG_DEBUG) && ENG_CHECK_UNIFORMS
+#if /*defined(ENG_DEBUG) && */ENG_CHECK_UNIFORMS
     #if ENG_CHECK_UNIFORMS_VERBOSE
         #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name); return; }
     #else

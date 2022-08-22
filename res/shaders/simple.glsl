@@ -21,5 +21,8 @@ out vec4 o_color;
 
 void main()
 {
-    o_color = u_color;
+    if (gl_FrontFacing)
+    {
+        o_color = u_color;
+    } else o_color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
 }

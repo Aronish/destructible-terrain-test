@@ -1,6 +1,7 @@
 #shader comp
 #version 460 core
 
+#include "simplex_noise.glsl"
 #include "qef_solver.glsl"
 
 const uint WORK_GROUP_SIZE = 10;
@@ -48,6 +49,24 @@ vec3 getNormalAtEdge(vec4 corner_a, vec4 corner_b, out vec3 interpolated)
     return vec3(0.0f);
 }
 
+void getNormalAtEdge2(vec4 corner_a, vec4 corner_b, out vec3 interpolated, out vec3 normal)
+{
+    if (corner_a.w < 0.0f != corner_b.w < 0.0f)
+    {
+        float t = -corner_a.w / (corner_b.w - corner_a.w);
+        interpolated = corner_a.xyz + t * (corner_b.xyz - corner_a.xyz);
+        const float epsilon = 0.0001f;
+        normal = vec3
+        (
+            (noiseFunc(vec3(interpolated.x + epsilon, interpolated.yz)) -                  noiseFunc(vec3(interpolated.x - epsilon, interpolated.yz))) / (2.0f * epsilon),
+            (noiseFunc(vec3(interpolated.x, interpolated.y + epsilon, interpolated.z)) -   noiseFunc(vec3(interpolated.x, interpolated.y - epsilon, interpolated.z))) / (2.0f * epsilon),
+            (noiseFunc(vec3(interpolated.xy, interpolated.z + epsilon)) -                  noiseFunc(vec3(interpolated.xy, interpolated.z - epsilon))) / (2.0f * epsilon)
+        );
+        return;
+    }
+    normal = vec3(0.0f);
+}
+
 uint getPointIndex(uint x, uint y, uint z)
 {
 	return x + y * WORK_GROUP_SIZE + z * WORK_GROUP_SIZE * WORK_GROUP_SIZE;
@@ -75,7 +94,6 @@ void main()
         vec4(x + 1, y + 1,  z,      values[getPointIndex(x + 1, y + 1,  z)      ]),
         vec4(x + 1, y + 1,  z + 1,  values[getPointIndex(x + 1, y + 1,  z + 1)  ])
     };
-
     vec3 normals[12];
     vec3 positions[12];
     // QEF Data
@@ -85,14 +103,19 @@ void main()
     uint valid_normal_count = 0;
     for (uint i = 0; i < 12; ++i)
     {
+//#define NORMAL
+#ifdef NORMAL
         normals[i] = getNormalAtEdge(cube_corners[cornerIndexAFromEdge[i]], cube_corners[cornerIndexBFromEdge[i]], positions[i]);
+#else
+        getNormalAtEdge2(cube_corners[cornerIndexAFromEdge[i]], cube_corners[cornerIndexBFromEdge[i]], positions[i], normals[i]);
+#endif
         if (length(normals[i]) > 0.0f)
         {
             ++valid_normal_count;
-            qef_add(normals[i], positions[i], ATA, ATb, pointaccum);
+            qef_add(normalize(normals[i]), positions[i], ATA, ATb, pointaccum);
         }
     }
-#if 0 // SUCKS
+#if 1 // SUCKS
     // Bias
     const float bias_strength = 0.01f;
     vec3 mass_point = vec3(0.0f);
@@ -108,6 +131,6 @@ void main()
         vec3 com = pointaccum.xyz / pointaccum.w;
         vec3 x_q = vec3(0.0f);
         qef_solve(ATA, ATb, pointaccum, x_q);
-        vertices[getCellIndex(x, y, z)] = vec4(x_q, 1.0f);
+        vertices[getCellIndex(x, y, z)] = vec4(vec3(x, y, z), 1.0f);
     } else vertices[getCellIndex(x, y, z)] = vec4(0.0f);
 }

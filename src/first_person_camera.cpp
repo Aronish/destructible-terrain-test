@@ -37,8 +37,6 @@ namespace eng
         float almost_half_pi = std::numbers::pi_v<float> / 2.0f - 0.001f;
         if (m_pitch < -almost_half_pi) m_pitch = -almost_half_pi;
         if (m_pitch > almost_half_pi) m_pitch = almost_half_pi;
-        m_last_x = (float)event.m_x_pos;
-        m_last_y = (float)event.m_y_pos;
         calculateViewMatrix();
     }
 

@@ -19,7 +19,8 @@ namespace eng
 
 		DCPlane m_plane;
 
-		std::shared_ptr<Shader> m_quad_shader;
+		std::shared_ptr<Shader> m_shader;
+		std::shared_ptr<Shader> m_normals;
 	public:
 		DCApplication();
 

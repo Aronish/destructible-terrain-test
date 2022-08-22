@@ -1,5 +1,9 @@
 #include <functional>
 
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+
 #include "event/key_event.hpp"
 #include "logger.hpp"
 #include "graphics/vertex_array.hpp"
@@ -18,24 +22,38 @@ namespace eng
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glClearColor(0.79f, 0.94f, 1.0f, 1.0f);
-        glPointSize(4.0f);
+        glEnable(GL_PROGRAM_POINT_SIZE);
+        //glPointSize(4.0f);
 
-        m_quad_shader = m_game_system.getAssetManager().getShader("res/shaders/simple.glsl");
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGui::StyleColorsDark();
+        ImGui_ImplGlfw_InitForOpenGL(m_window.getWindowHandle(), true);
+        ImGui_ImplOpenGL3_Init("#version 460 core");
 
-        m_camera.setPosition({ -1.0f, 0.0f, -1.0f });
+        m_shader = m_game_system.getAssetManager().getShader("res/shaders/lit_normals.glsl");
+        m_normals = m_game_system.getAssetManager().getShader("res/shaders/signs_test.glsl");
+
+        m_camera.setPosition({ -1.0f, 3.0f, -1.0f });
         m_window.setCursorVisibility(false);
 	}
 
 	void DCApplication::onEvent(Event const & event)
 	{
-        if (!m_window.isCursorVisible()) EventDispatcher::dispatch<MouseMovedEvent>(event, &FirstPersonCamera::onMouseMoved, &m_camera);
+        EventDispatcher::dispatch<MouseMovedEvent>(event, [this](MouseMovedEvent const & event)
+        {
+            if (!m_window.isCursorVisible()) m_camera.onMouseMoved(event);
+            m_camera.setCursorPosition({ event.m_x_pos, event.m_y_pos });
+        });
         EventDispatcher::dispatch<WindowResizedEvent>(event, &FirstPersonCamera::onWindowResized, &m_camera);
         EventDispatcher::dispatch<KeyPressedEvent>(event, [this](KeyPressedEvent const & event)
         {
             if (event.m_key_code == GLFW_KEY_E) m_window.setCursorVisibility(!m_window.isCursorVisible());
             if (event.m_key_code == GLFW_KEY_R)
             {
-                m_plane.generate();
+                m_shader->compile("res/shaders/lit_normals.glsl");
+                m_normals->compile("res/shaders/signs_test.glsl");
+                m_plane.generate(true);
             }
         });
 	}
@@ -56,14 +74,37 @@ namespace eng
 	void DCApplication::render()
 	{
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        m_quad_shader->bind();
-        m_quad_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3{ 0.2f }));
-        m_quad_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
-        m_quad_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
-        m_quad_shader->setUniformVector4f("u_color", { 0.8f, 0.2f, 0.3f, 1.0f });
-        glBindVertexArray(m_plane.m_va);
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_plane.m_di);
+
+        m_shader->bind();
+        m_shader->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3{ 4.0f }));
+        m_shader->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
+        m_shader->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
+        m_shader->setUniformVector3f("u_camera_position_W", m_camera.getPosition());
+        glBindVertexArray(m_plane.m_va_mesh);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_plane.m_di_mesh);
         glDrawArraysIndirect(GL_TRIANGLES, nullptr);
+
+        m_normals->bind();
+        m_normals->setUniformMatrix4f("u_model", glm::scale(glm::mat4(1.0f), glm::vec3{ 4.0f }));
+        m_normals->setUniformMatrix4f("u_view", m_camera.getViewMatrix());
+        m_normals->setUniformMatrix4f("u_projection", m_camera.getProjectionMatrix());
+        glBindVertexArray(m_plane.m_va_normals);
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, m_plane.m_di_normals);
+        glDrawArraysIndirect(GL_POINTS, nullptr);
+
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        bool values_changed{};
+        values_changed |= ImGui::DragFloat("Threshold", &m_plane.m_threshold, 0.01f);
+        values_changed |= ImGui::DragFloat("Frequency", &m_plane.m_frequency, 0.01f);
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        if (values_changed) m_plane.generate();
+
 		glfwSwapBuffers(m_window.getWindowHandle());
 	}
 

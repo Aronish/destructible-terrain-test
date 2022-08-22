@@ -25,8 +25,9 @@ namespace eng
             GLint m_buffer_offset;
         };
     private:
-        GLuint m_id;
+        GLuint m_id{};
         std::unordered_map<std::string, GLuint> m_uniform_locations;
+        std::vector<GLuint> m_attached_shaders;
     public:
         explicit Shader(char const * file_path);
         ~Shader();
