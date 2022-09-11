@@ -13,7 +13,7 @@ namespace eng
 	class Player
 	{
 	private:
-		float inline static constexpr WALKING_SPEED = 2.5f, RUN_MULTIPLIER = 1.6f;
+		float static constexpr WALKING_SPEED = 2.5f, RUN_MULTIPLIER = 1.6f;
 
 	private:
 		physx::PxController * m_character_controller;

@@ -11,7 +11,7 @@ namespace eng
 
         m_px_pvd = physx::PxCreatePvd(*m_px_foundation);
 
-        m_pvd_transport = physx::PxDefaultPvdSocketTransportCreate("192.168.2.118", 5425, 10);
+        m_pvd_transport = physx::PxDefaultPvdSocketTransportCreate("87.92.164.212", 5425, 10);
         m_px_pvd->connect(*m_pvd_transport, physx::PxPvdInstrumentationFlag::eALL);
 
         m_px_physics = PxCreateBasePhysics(PX_PHYSICS_VERSION, *m_px_foundation, physx::PxTolerancesScale(), true, m_px_pvd);

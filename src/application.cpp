@@ -35,7 +35,6 @@ namespace eng
 
         m_crosshair_texture = m_game_system.getAssetManager().getTexture("res/textures/crosshair.png");
         m_textured_quad_shader = m_game_system.getAssetManager().getShader("res/shaders/textured_quad.glsl");
-
         int quad_indices[] = 
         {
             0, 2, 3, 0, 3, 1        //CW
@@ -61,7 +60,10 @@ namespace eng
         VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
 
         m_debug_controls.onShaderBlockChanged(m_world.getGenerationSpec().size());
+        //m_debug_controls.loadDefaultValues(m_world.getGenerationSpec());
         m_world.generateChunks();
+        m_world.generateColliders();
+        m_player.initCharacterController(m_world.getControllerManager(), m_game_system, {0.0f, 15.0f, 0.0f});
     }
 
     void Application::onEvent(Event const & event)
@@ -88,25 +90,19 @@ namespace eng
                 break;
             }
         });
-        EventDispatcher::dispatch<MousePressedEvent>(event, [&](MousePressedEvent const & event)
-        {
-            switch (event.m_button_code)
-            {
-                case GLFW_MOUSE_BUTTON_LEFT:
-                    m_world.m_create_destroy_multiplier = -1.0f;
-                    break;
-                case GLFW_MOUSE_BUTTON_RIGHT:
-                    m_world.m_create_destroy_multiplier = 1.0f;
-                    break;
-            }
-        });
     }
 
     void Application::update(float delta_time)
     {
         glfwPollEvents();
         m_game_system.getGpuSynchronizer().update();
-        if (!m_window.isCursorVisible()) m_world.update(delta_time, m_window, m_camera);
+        if (!m_window.isCursorVisible())
+        {
+            m_world.update(delta_time);
+            m_player.update(delta_time, m_window, m_camera, m_spectating);
+            m_camera.setPosition(m_player.getPosition());
+            m_world.onGenerationOriginChanged(m_player.getPosition());
+        }
     }
 
     void Application::render()
@@ -126,9 +122,8 @@ namespace eng
             bool game_mode_changed = ImGui::RadioButton("Normal", &m_spectating, 0);
             ImGui::SameLine();
             game_mode_changed |= ImGui::RadioButton("Spectator", &m_spectating, 1);
-            if (game_mode_changed) m_world.setSpectating(m_spectating);
 
-            bool values_changed{};
+            bool values_changed{ game_mode_changed };
             if (m_spectating) values_changed = m_debug_controls.render(m_world);
 
             ImGui::Render();
@@ -139,6 +134,7 @@ namespace eng
                 m_world.updateGenerationConfig(m_debug_controls.getBufferData());
                 m_world.invalidateAllChunks();
                 m_world.generateChunks();
+                if (game_mode_changed && !m_spectating) m_world.generateColliders();
             }
         }
 

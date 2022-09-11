@@ -142,7 +142,7 @@ float layeredNoise(vec3 position, int octaves, float frequency, float lacunarity
     float weight = 1.0f;
     for (int i = 0; i < octaves; ++i)
     {
-        float noise = 1.0f - abs(simplexNoise3d(position * frequency));
+        float noise = 1.0f - abs(simplexNoise3d((position + vec3(394.0f, 8493.0f, 903.0f)) * frequency));
         noise = noise * noise * weight;
         weight = max(min(noise * u_weight_multiplier_3d, 1.0f), 0.0f);
         total_noise += amplitude * noise;

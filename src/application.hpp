@@ -28,6 +28,7 @@ namespace eng
         GameSystem m_game_system;
         FirstPersonCamera m_camera;
         World m_world;
+        Player m_player;
 
         int m_spectating{};
 

@@ -32,7 +32,7 @@ namespace eng
         glfwMakeContextCurrent(m_window_handle);
         gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
-#define ENG_GL_DEBUG_LOG 1,
+#define ENG_GL_DEBUG_LOG 1
 #if defined(ENG_DEBUG) && ENG_GL_DEBUG_LOG
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
         glDebugMessageCallback(
@@ -156,7 +156,7 @@ namespace eng
         {
             if (m_maximized)
             {
-                glfwSetWindowMonitor(m_window_handle, 0, 0, 0, m_video_mode->width, m_video_mode->height, 60);
+                glfwSetWindowMonitor(m_window_handle, 0, 0, 0, m_video_mode->width, m_video_mode->height - 61, 60);
                 glfwMaximizeWindow(m_window_handle);
             } else glfwSetWindowMonitor(m_window_handle, 0, m_video_mode->width / 2 - m_init_width / 2, m_video_mode->height / 2 - m_init_height / 2, m_init_width, m_init_height, 60);
         }

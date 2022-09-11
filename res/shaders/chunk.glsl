@@ -32,7 +32,7 @@ uniform vec3 u_color = vec3(0.22f, 0.42f, 0.046f);
 layout (binding = 0) uniform sampler2D s_grass;
 layout (binding = 1) uniform sampler2D s_dirt;
 
-const float c_fog_start = 50, c_fog_end = 70;
+const float c_fog_start = 30, c_fog_end = 40;
 
 out vec4 o_color;
 
@@ -43,15 +43,15 @@ void main()
     vec3 blending = normalize(max(abs(normal), 0.00001f));
     float b = blending.x + blending.y + blending.z;
     blending /= vec3(b);
-    blending *= normalize(vec3(1.0f, 4.0f, 1.0f));
+    //blending *= normalize(vec3(1.0f, 1.0f, 1.0f));
 
-    const float scale_factor = 0.2f;
+    const float scale_factor = 1.0f;
     vec3 x_axis = texture(s_dirt, v_position_W.yz * scale_factor).xyz;
     vec3 y_axis = texture(s_grass, v_position_W.xz * scale_factor).xyz;
     vec3 z_axis = texture(s_dirt, v_position_W.xy * scale_factor).xyz;
 
     vec3 color = x_axis * blending.x + y_axis * blending.y + z_axis * blending.z;
-    color *= normalize(vec3(0.4f, 1.25f, 1.0f));
+    //color *= normalize(vec3(0.4f, 1.25f, 1.0f)); // Greenish
 
     // Directional lighting
     vec3 view_direction = normalize(u_camera_position_W - v_position_W);

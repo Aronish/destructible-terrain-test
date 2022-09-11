@@ -42,5 +42,7 @@ namespace eng
         glm::vec3 const & getDirection() const;
         glm::mat4 const & getViewMatrix() const;
         glm::mat4 const & getProjectionMatrix() const;
+
+        void printPosition() const;
     };
 }

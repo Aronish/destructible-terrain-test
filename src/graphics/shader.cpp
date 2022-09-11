@@ -151,7 +151,7 @@ namespace eng
         glUseProgram(m_id);
     }
 
-#if defined(ENG_DEBUG) && ENG_DETECT_INACTIVE_UNIFORMS
+#if /*defined(ENG_DEBUG) &&*/ ENG_DETECT_INACTIVE_UNIFORMS
     #if ENG_VERBOSE_UNIFORM_CHECKER
         #define ENG_UNIFORM_CHECKER if (m_uniform_locations.find(name) == m_uniform_locations.end()) { ENG_LOG_F("Matrix4fv uniform with name %s does not exist!", name); return; }
     #else

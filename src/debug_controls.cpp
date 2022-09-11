@@ -10,9 +10,9 @@ namespace eng
         m_generation_data.resize(num_variables);
     }
 
-    void DebugControls::loadDefaultValues(std::vector<Shader::BlockVariable> const & spec)
+    void DebugControls::loadValuesFromFile(char const * path, std::vector<Shader::BlockVariable> const & spec)
     {
-        std::ifstream stream(DEFAULTS_FILE, std::ios::in);
+        std::ifstream stream(path, std::ios::in);
         std::string source{ std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>() };
         std::stringstream defaults(source);
         std::string line, name, value;
@@ -30,7 +30,7 @@ namespace eng
 
     void DebugControls::saveDefaultValues(std::vector<Shader::BlockVariable> const & spec)
     {
-        std::ofstream stream(DEFAULTS_FILE, std::ios::out);
+        std::ofstream stream(DEFAULTS_WORLDGEN_FILE, std::ios::out);
         for (auto const & variable : spec)
         {
             IntOrFloat value = m_generation_data[variable.m_buffer_offset / sizeof(IntOrFloat)];
@@ -46,11 +46,17 @@ namespace eng
         {
             if (ImGui::Button("Load Defaults"))
             {
-                loadDefaultValues(world.getGenerationSpec());
+                loadValuesFromFile(DEFAULTS_WORLDGEN_FILE, world.getGenerationSpec());
                 values_changed = true;
             }
             ImGui::SameLine();
             if (ImGui::Button("Save As Default")) saveDefaultValues(world.getGenerationSpec());
+            ImGui::SameLine();
+            if (ImGui::Button("Flat"))
+            {
+                loadValuesFromFile(FLAT_PLANE_FILE, world.getGenerationSpec());
+                values_changed = true;
+            }
             values_changed |= ImGui::DragFloat("Threshold", &world.m_threshold, 0.05f);
             for (auto const & block_variable : world.getGenerationSpec())
             {

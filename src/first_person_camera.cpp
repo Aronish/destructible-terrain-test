@@ -90,4 +90,9 @@ namespace eng
     {
         return m_projection_matrix;
     }
+
+    void FirstPersonCamera::printPosition() const
+    {
+        ENG_LOG_F("Cam: %f, %f, %f", m_position.x, m_position.y, m_position.z);
+    }
 }

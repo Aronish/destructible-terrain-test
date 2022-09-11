@@ -89,14 +89,14 @@ void main()
 
     const vec4 cube_corners[8] =
     {
-        vec4(scaled_coordinate,                                             getOwnDensity(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
-        vec4(scaled_coordinate + vec3(step_size,  0.0f,       0.0f),        getOwnDensity(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
-        vec4(scaled_coordinate + vec3(step_size,  0.0f,       step_size),   getOwnDensity(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
-        vec4(scaled_coordinate + vec3(0.0f,       0.0f,       step_size),   getOwnDensity(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
-        vec4(scaled_coordinate + vec3(0.0f,       step_size,  0.0f),        getOwnDensity(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
-        vec4(scaled_coordinate + vec3(step_size,  step_size,  0.0f),        getOwnDensity(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
-        vec4(scaled_coordinate + vec3(step_size,  step_size,  step_size),   getOwnDensity(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1))),
-        vec4(scaled_coordinate + vec3(0.0f,       step_size,  step_size),   getOwnDensity(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)))
+        vec4(scaled_coordinate,                                             getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  0.0f,       step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       0.0f,       step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y,        gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  0.0f),        getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z))),
+        vec4(scaled_coordinate + vec3(step_size,  step_size,  step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x + 1,  gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1))),
+        vec4(scaled_coordinate + vec3(0.0f,       step_size,  step_size),   getDensityBasedOnNeighbors(uvec3(gl_GlobalInvocationID.x,      gl_GlobalInvocationID.y + 1,    gl_GlobalInvocationID.z + 1)))
     };
 
     uint cube_index = 0;
@@ -104,7 +104,7 @@ void main()
     {
         if (cube_corners[i].w < u_threshold) cube_index |= 1 << i;
     }
-    if (cube_index == 0 || cube_index == 255) return;
+    //if (cube_index == 0 || cube_index == 255) return;
 
     const int index_configuration[16] = tri_table[cube_index];
 

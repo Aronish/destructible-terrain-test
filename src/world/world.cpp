@@ -7,7 +7,8 @@
 
 namespace eng
 {
-    World::World(GameSystem & game_system) : r_game_system(game_system), m_chunk_pool(game_system)
+    World::World(GameSystem & game_system)
+        : r_game_system(game_system), m_chunk_pool(game_system)
     {
         m_density_generator     = game_system.getAssetManager().getShader("res/shaders/generate_points.glsl");
         m_marching_cubes        = game_system.getAssetManager().getShader("res/shaders/marching_cubes.glsl");
@@ -16,7 +17,7 @@ namespace eng
         m_ray_mesh_command      = game_system.getAssetManager().getShader("res/shaders/ray_mesh_command.glsl");
         m_terraform             = game_system.getAssetManager().getShader("res/shaders/terraform.glsl");
         
-        m_grass_texture         = game_system.getAssetManager().getTexture("res/textures/TexturesCom_Grass0157_1_seamless_S.jpg");
+        m_grass_texture         = game_system.getAssetManager().getTexture("res/textures/TexturesCom_ConcretePlates0200_2_seamless_S.jpg");
         m_dirt_texture          = game_system.getAssetManager().getTexture("res/textures/TexturesCom_SoilMud0044_1_seamless_S.jpg");
 
         auto tri_table = new int[256][16]
@@ -309,9 +310,8 @@ namespace eng
         if (!m_scene) throw std::runtime_error("Failed to create PhysX scene!");
 
         m_controller_manager = PxCreateControllerManager(*m_scene);
-        m_player.initCharacterController(m_controller_manager, game_system, { 0.0f, 15.0f, 0.0f });
 
-        m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * 2), 16);
+        m_chunk_pool.initialize(static_cast<size_t>((2 * m_render_distance + 1) * (2 * m_render_distance + 1) * m_world_height), 16);
         for (auto const & chunk : m_chunk_pool)
         {
             m_scene->addActor(*chunk.getRigidBody());
@@ -338,13 +338,14 @@ namespace eng
         generateChunks();
     }
 
-    void World::onPlayerMoved(glm::vec3 const & position)
+    void World::onGenerationOriginChanged(glm::vec3 const & position)
     {
         auto chunk_coords = static_cast<glm::ivec3>(glm::floor(position / static_cast<float>(m_chunk_size_in_units)));
         if (m_last_chunk_coords != chunk_coords)
         {
             m_last_chunk_coords = chunk_coords;
             generateChunks();
+            generateColliders();
         }
     }
 
@@ -380,6 +381,7 @@ namespace eng
                 m_chunk_pool.deactivateChunk(&chunk);
             }
         }
+
         // Generate chunks in render distance if they're not active
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_generation_config_u);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, m_triangulation_table_ss);
@@ -387,10 +389,10 @@ namespace eng
         {
             for (int z_i = -m_render_distance; z_i <= m_render_distance; ++z_i)
             {
-                for (int y_i = 0; y_i < 2; ++y_i)
+                for (int y_i = 0; y_i < m_world_height; ++y_i)
                 {
                     glm::ivec3 chunk_coordinate{ x_i + m_last_chunk_coords.x, y_i, z_i + m_last_chunk_coords.z };
-                    uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1) | ((y_i == 1) << 2);
+                    uint8_t has_neighbors = (x_i != -m_render_distance) | ((z_i != -m_render_distance) << 1) | ((y_i != 0) << 2);
                     if (!m_chunk_pool.hasChunkAt(chunk_coordinate)) // If no chunk exists, create one
                     {
                         Chunk * chunk = nullptr;
@@ -405,30 +407,32 @@ namespace eng
                 }
             }
         }
-        if (!m_spectating)
-        {
-            // Setup colliders
-            r_game_system.getGpuSynchronizer().setBarrier([this]
-            {
-                std::vector<int unsigned> mesh_info(6);
-                std::vector<float> mesh(maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * 18);
-                for (auto & chunk : m_chunk_pool)
-                {
-                    glGetNamedBufferSubData(chunk.getDrawIndirectBuffer(), 0, sizeof(int unsigned) * 6, mesh_info.data());
-                    chunk.setMeshInfo(mesh_info[0]);
-                    if (std::abs(chunk.getPosition().x - m_last_chunk_coords.x) > 1 || std::abs(chunk.getPosition().z - m_last_chunk_coords.z) > 1) continue;
-                    glGetNamedBufferSubData(chunk.getMeshVB(), 0, maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * sizeof(float) * 18, mesh.data());
-                    chunk.setMeshCollider(mesh, m_chunk_collider_material, m_chunk_size_in_units);
-                }
-            });
-        }
     }
 
-    void World::update(float delta_time, Window const & window, FirstPersonCamera & camera)
+    void World::generateColliders()
     {
-        m_player.update(delta_time, window, camera, m_spectating);
-        camera.setPosition(m_player.getPosition());
-        onPlayerMoved(m_player.getPosition());
+        // Setup colliders
+        r_game_system.getGpuSynchronizer().setBarrier([this]
+        {
+            std::vector<int unsigned> mesh_info(6);
+            std::vector<float> mesh(maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * 18);
+            for (auto & chunk : m_chunk_pool)
+            {
+                glGetNamedBufferSubData(chunk.getDrawIndirectBuffer(), 0, sizeof(int unsigned) * 6, mesh_info.data());
+                chunk.setMeshInfo(mesh_info[0]);
+                if (std::abs(chunk.getPosition().x - m_last_chunk_coords.x) > 1 || std::abs(chunk.getPosition().z - m_last_chunk_coords.z) > 1)
+                {
+                    chunk.removeCollider();
+                    continue;
+                }
+                glGetNamedBufferSubData(chunk.getMeshVB(), 0, maxChunkTriangles(m_chunk_pool.getBaseLodPointWidth()) * sizeof(float) * 18, mesh.data());
+                chunk.setMeshCollider(mesh, m_chunk_collider_material, m_chunk_size_in_units);
+            }
+        });
+    }
+
+    void World::update(float delta_time)
+    {
         //if (!m_spectating && (glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS || glfwGetMouseButton(window.getWindowHandle(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS))
         //{
         //    castRay(camera); // This is literally still 10x faster than PhysX raycasts
@@ -466,23 +470,13 @@ namespace eng
         glNamedBufferSubData(m_generation_config_u, 0, m_generation_spec.size() * sizeof(float), buffer_data);
     }
 
-    void World::setSpectating(bool spectating)
-    {
-        m_spectating = spectating;
-        if (!spectating)
-        {
-            invalidateAllChunks();
-            generateChunks();
-        }
-    }
-
-    void World::setRenderDistance(int unsigned render_distance)
-    {
-        m_render_distance = render_distance;
-    }
-
     std::vector<Shader::BlockVariable> const & World::getGenerationSpec() const
     {
         return m_generation_spec;
+    }
+
+    physx::PxControllerManager * const World::getControllerManager() const
+    {
+        return m_controller_manager;
     }
 }

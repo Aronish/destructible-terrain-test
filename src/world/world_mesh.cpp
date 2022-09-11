@@ -141,7 +141,7 @@ namespace eng
         m_marching_cubes->bind();
         m_marching_cubes->setUniformFloat("u_threshold", m_threshold);
         m_marching_cubes->setUniformUInt("u_points_per_axis", m_chunk_pool.getBaseLodPointWidth());
-        //m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
+        m_marching_cubes->setUniformInt("u_has_neighbors", has_neighbors);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, chunk.getMeshVB());
         glClearNamedBufferData(chunk.getMeshVB(), GL_R32F, GL_RED, GL_FLOAT, nullptr);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, chunk.getDrawIndirectBuffer());
