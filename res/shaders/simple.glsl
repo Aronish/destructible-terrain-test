@@ -15,11 +15,11 @@ void main()
 #shader frag
 #version 460 core
 
-uniform float u_color;
+uniform vec3 u_color;
 
 out vec4 o_color;
 
 void main()
 {
-    o_color = vec4(vec3(u_color), 1.0f);
+    o_color = vec4(u_color, 1.0f);
 }

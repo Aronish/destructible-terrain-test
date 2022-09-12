@@ -1,8 +1,8 @@
-#include "application.hpp"
+#include "dc/dc_app.hpp"
 
 int main()
 {
-    eng::Application application(1280, 720, "Engineering Game", false);
-    application.run();
+    eng::DCApp app(1280, 720, "Dual Contouring", false);
+    app.run();
     return 0;
 }
