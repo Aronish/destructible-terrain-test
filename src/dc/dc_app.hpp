@@ -4,35 +4,40 @@
 
 #include <glad/glad.h>
 
-#include "cube_frame.hpp"
 #include "event/event.hpp"
 #include "first_person_camera.hpp"
 #include "game_system.hpp"
 #include "graphics/shader.hpp"
+#include "mesh.hpp"
 #include "octree.hpp"
 #include "window.hpp"
 
 namespace eng
 {
-	class DCApp
+	class DcApp
 	{
-    private:
-        float static constexpr WALKING_SPEED = 2.5f, RUN_MULTIPLIER = 1.6f;
-    private:
-        Window m_window; // Has to be first due to OpenGL initialization
-        GameSystem m_game_system;
-        FirstPersonCamera m_camera;
+	private:
+		float static constexpr WALKING_SPEED = 2.5f, RUN_MULTIPLIER = 1.6f;
+		int static constexpr OCTREE_SIZE = 64;
+	private:
+		Window window_; // Has to be first due to OpenGL initialization
+		GameSystem game_system_;
+		FirstPersonCamera camera_;
 
-        std::shared_ptr<Shader> m_shader;
-        CubeFrame m_cube;
-        Octree m_root;
+		std::shared_ptr<Shader> shader_;
+		std::shared_ptr<Texture> grass_;
+		std::shared_ptr<Texture> dirt_;
 
-    public:
-        DCApp(int unsigned width, int unsigned height, char const * title, bool maximized);
+		Mesh mesh_;
+		OctreeNode * root_{};
 
-        void run();
-        void onEvent(Event const & event);
-        void update(float delta_time);
-        void render();
+	public:
+		DcApp(int unsigned width, int unsigned height, char const * title, bool maximized);
+		~DcApp();
+
+		void run();
+		void onEvent(Event const & event);
+		void update(float delta_time);
+		void render() const;
 	};
 }

@@ -1,4 +1,4 @@
-#include "graphics/vertex_buffer_layout.hpp"
+#include "graphics/vertex_data_layout.hpp"
 
 namespace eng
 {

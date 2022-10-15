@@ -51,13 +51,14 @@ namespace eng
         };
 
         m_crosshair_ib = m_game_system.getAssetManager().createBuffer();
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, sizeof(quad_indices), quad_indices, 0);
 
         m_crosshair_vb = m_game_system.getAssetManager().createBuffer();
         glNamedBufferStorage(m_crosshair_vb, sizeof(quad_vertices), quad_vertices, 0);
 
         m_crosshair_va = m_game_system.getAssetManager().createVertexArray();
         VertexArray::associateVertexBuffer(m_crosshair_va, m_crosshair_vb, VertexDataLayout::POSIITON_UV_2F);
-        VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib, quad_indices, sizeof(quad_indices));
+        VertexArray::associateIndexBuffer(m_crosshair_va, m_crosshair_ib);
 
         m_debug_controls.onShaderBlockChanged(m_world.getGenerationSpec().size());
         //m_debug_controls.loadDefaultValues(m_world.getGenerationSpec());

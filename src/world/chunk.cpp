@@ -2,7 +2,7 @@
 #include <chrono>
 #include <cmath>
 
-#include "graphics/vertex_buffer_layout.hpp"
+#include "graphics/vertex_data_layout.hpp"
 #include "logger.hpp"
 #include "world/world.hpp"
 

@@ -24,11 +24,10 @@ namespace eng::VertexArray
         bindVertexBuffer(vertex_array, vertex_buffer, layout);
     }
 
-    void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer, int * indices, size_t indices_size)
+    void associateIndexBuffer(GLuint vertex_array, GLuint index_buffer)
     {
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, indices_size, indices, 0);
         glBindVertexArray(0);
     }
 }
