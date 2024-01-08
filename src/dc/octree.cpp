@@ -160,7 +160,7 @@ namespace eng
 				ENG_LOG("Couldn't add vertex!");
 				return;
 			}
-			d->index = vertex_buffer.size();
+			d->index = static_cast<int>(vertex_buffer.size());
 			vertex_buffer.push_back(MeshVertex(d->position, d->average_normal));
 		}
 	}

@@ -6,5 +6,5 @@ target_sources(engineering_game
         octree.cpp octree.hpp
         svd.cpp svd.hpp
         qef.cpp qef.hpp
-        qef_simd.hpp
+        qef_simd.cpp qef_simd.hpp
 )

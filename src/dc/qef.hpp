@@ -1,17 +1,17 @@
 #pragma once
 
 #include "svd.hpp"
+#include "qef_simd.hpp"
 
 namespace eng::svd
 {
     class QefData
     {
     public:
-        float ata_00_, ata_01_, ata_02_, ata_11_, ata_12_, ata_22_;
-        float atb_x_, atb_y_, atb_z_;
+        Mat4x4 ata_;
+        __m128 atb_;
+        __m128 point_accum_;
         float btb_;
-        float massPoint_x_, massPoint_y_, massPoint_z_;
-        int numPoints_;
 
         QefData();
         QefData(float const ata_00, float const ata_01, float const ata_02, float const ata_11, float const ata_12, float const ata_22,
